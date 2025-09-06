@@ -99,25 +99,35 @@
               <p class="text-surface-400">Manage your projects and track their review status.</p>
             </div>
             <div class="flex gap-2">
-              <button class="inline-flex items-center justify-center gap-2 rounded-full h-10 px-6 bg-primary-500 text-surface-900 text-sm font-bold tracking-wide hover:bg-primary-600 transition-colors">
+
+              <button id="UploadBtn" class="inline-flex items-center justify-center gap-2 rounded-full h-10 px-6 bg-primary-500 text-surface-900 text-sm font-bold tracking-wide hover:bg-primary-600 transition-colors" type="submit">
                 <span class="material-symbols-outlined"> upload_file </span>
                 <span>Upload Project</span>
               </button>
-              <button class="inline-flex items-center justify-center gap-2 rounded-full h-10 px-6 bg-surface-800 text-surface-50 text-sm font-bold tracking-wide hover:bg-surface-700 transition-colors">
+
+              <button id="sendReviewBtn" class="inline-flex items-center justify-center gap-2 rounded-full h-10 px-6 bg-surface-800 text-surface-50 text-sm font-bold tracking-wide hover:bg-surface-700 transition-colors" type="submit">
                 <span class="material-symbols-outlined"> send </span>
                 <span>Send for Review</span>
               </button>
             </div>
-
             <!-- Upload Project Modal -->
-          <div id="upload-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
-            <div class="bg-surface-900 rounded-lg w-full max-w-md mx-4 p-6">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-surface-50">Upload Project</h3>
-                <button id="close-modal" class="text-surface-400 hover:text-surface-50">
-                  <span class="material-symbols-outlined">close</span>
-                </button>
-              </div>
+             <!-- Example trigger (place anywhere on page) -->
+              <button id="open-upload" class="px-4 py-2 bg-primary-500 text-surface-900 rounded-lg">
+                Open Upload
+              </button>
+
+              <div id="upload-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-black/60"></div>
+
+                <!-- Modal box -->
+                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+                  <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Upload Project</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
               <div class="mb-6">
                 <ul class="flex border-b border-surface-700">
                   <li class="mr-1">
@@ -175,13 +185,11 @@
                 <button id="cancel-upload" class="px-4 py-2 text-surface-300 hover:text-surface-50 rounded-lg">Cancel</button>
                 <button id="submit-upload" class="px-4 py-2 bg-primary-500 text-surface-900 font-medium rounded-lg hover:bg-primary-400 transition-colors">Upload Project</button>
               </div>
-            </div>
           </div>
-
-
+        </div>
           </div>
           <!-- Review History -->
-          <div>
+          <!-- <div>
             <h3 class="text-xl font-bold tracking-tight text-surface-100 mb-4">Review History</h3>
             <div class="overflow-x-auto rounded-xl border border-surface-800 bg-surface-800/50">
               <table class="w-full text-sm text-left">
@@ -217,10 +225,39 @@
                 </tbody>
               </table>
             </div>
-          </div>
+          </div> -->
+
+          <div>
+  <h3 class="text-xl font-bold tracking-tight text-surface-100 mb-4">Review History</h3>
+  <div class="overflow-x-auto rounded-xl border border-surface-800 bg-surface-800/50">
+    <table id="review-history-table" class="w-full text-sm text-left">
+      <thead class="bg-surface-800">
+        <tr>
+          <th class="px-6 py-3 font-medium text-surface-300">Date</th>
+          <th class="px-6 py-3 font-medium text-surface-300">Review Type</th>
+          <th class="px-6 py-3 font-medium text-surface-300">Status</th>
+          <th class="px-6 py-3 font-medium text-surface-300 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-surface-800">
+        <!-- This will be populated dynamically -->
+        <tr>
+          <td colspan="4" class="px-6 py-4 text-center text-surface-400">
+            Loading your review history...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
+
+
         </div>
         <!-- Right column -->
-        <aside class="w-full lg:w-80 xl:w-96 flex-shrink-0 bg-surface-800/50 rounded-xl p-6 space-y-6 self-start">
+        <!-- <aside class="w-full lg:w-80 xl:w-96 flex-shrink-0 bg-surface-800/50 rounded-xl p-6 space-y-6 self-start">
           <div class="text-center">
             <span class="material-symbols-outlined text-5xl text-primary-500"> auto_awesome </span>
             <h3 class="text-xl font-bold tracking-tight text-surface-50 mt-2">System Review</h3>
@@ -229,7 +266,7 @@
           <button class="w-full inline-flex items-center justify-center gap-2 rounded-full h-12 px-6 bg-primary-500 text-surface-900 text-base font-bold tracking-wide hover:bg-primary-600 transition-colors">
             <span>Start System Review</span>
           </button>
-        </aside>
+        </aside> -->
       </main>
     </div>
   </div>
