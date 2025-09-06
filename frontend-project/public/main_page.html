@@ -108,6 +108,77 @@
                 <span>Send for Review</span>
               </button>
             </div>
+
+            <!-- Upload Project Modal -->
+          <div id="upload-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+            <div class="bg-surface-900 rounded-lg w-full max-w-md mx-4 p-6">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-surface-50">Upload Project</h3>
+                <button id="close-modal" class="text-surface-400 hover:text-surface-50">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div class="mb-6">
+                <ul class="flex border-b border-surface-700">
+                  <li class="mr-1">
+                    <button id="tab-file" class="tab-button bg-surface-800 text-primary-400 inline-block py-2 px-4 rounded-t-lg font-medium border-b-2 border-primary-400">File Upload</button>
+                  </li>
+                  <li class="mr-1">
+                    <button id="tab-link" class="tab-button text-surface-400 inline-block py-2 px-4 rounded-t-lg font-medium hover:text-surface-50">Paste Link</button>
+                  </li>
+                </ul>
+              </div>
+              <!-- File Upload Form -->
+              <form id="file-upload-form" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-surface-300 mb-2">Select Files</label>
+                  <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-surface-700 rounded-lg cursor-pointer hover:border-primary-400 transition-colors">
+                      <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <span class="material-symbols-outlined text-surface-400 mb-2">cloud_upload</span>
+                        <p class="mb-2 text-sm text-surface-400">Click to upload or drag and drop</p>
+                        <p class="text-xs text-surface-500">PDF, ZIP (Max. 10MB)</p>
+                      </div>
+                      <input id="file-input" type="file" class="hidden" accept=".pdf,.zip" multiple />
+                    </label>
+                  </div>
+                  <div id="file-list" class="mt-2 text-sm text-surface-400 hidden">
+                    <p>Selected files:</p>
+                    <ul id="selected-files" class="list-disc list-inside mt-1"></ul>
+                  </div>
+                </div>
+                <div>
+                  <label for="project-name" class="block text-sm font-medium text-surface-300 mb-2">Project Name</label>
+                  <input type="text" id="project-name" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Enter project name">
+                </div>
+                <div>
+                  <label for="project-description" class="block text-sm font-medium text-surface-300 mb-2">Description (Optional)</label>
+                  <textarea id="project-description" rows="3" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Brief description of your project"></textarea>
+                </div>
+              </form>
+              <!-- Link Paste Form -->
+              <form id="link-upload-form" class="space-y-4 hidden">
+                <div>
+                  <label for="project-link" class="block text-sm font-medium text-surface-300 mb-2">Project URL</label>
+                  <input type="url" id="project-link" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://example.com/project" required>
+                </div>
+                <div>
+                  <label for="link-project-name" class="block text-sm font-medium text-surface-300 mb-2">Project Name</label>
+                  <input type="text" id="link-project-name" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Enter project name">
+                </div>
+                <div>
+                  <label for="link-project-description" class="block text-sm font-medium text-surface-300 mb-2">Description (Optional)</label>
+                  <textarea id="link-project-description" rows="3" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Brief description of your project"></textarea>
+                </div>
+              </form>
+              <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-upload" class="px-4 py-2 text-surface-300 hover:text-surface-50 rounded-lg">Cancel</button>
+                <button id="submit-upload" class="px-4 py-2 bg-primary-500 text-surface-900 font-medium rounded-lg hover:bg-primary-400 transition-colors">Upload Project</button>
+              </div>
+            </div>
+          </div>
+
+
           </div>
           <!-- Review History -->
           <div>
@@ -148,7 +219,6 @@
             </div>
           </div>
         </div>
-
         <!-- Right column -->
         <aside class="w-full lg:w-80 xl:w-96 flex-shrink-0 bg-surface-800/50 rounded-xl p-6 space-y-6 self-start">
           <div class="text-center">
