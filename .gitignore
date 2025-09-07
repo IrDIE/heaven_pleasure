@@ -209,3 +209,8 @@ __marimo__/
 ./frontend-project/package-lock.json
 ./frontend-project/projects.db
 
+frontend-project/node_modules/*
+frontend-project/package-lock.json
+frontend-project/projects.db
+
+.DS_Store
