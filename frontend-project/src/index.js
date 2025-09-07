@@ -1,3 +1,16 @@
+function formatDateTime(input) {
+  if (!input) return '';
+  // SQLite обычно шлёт "YYYY-MM-DD HH:MM:SS" — вытащим как есть
+  const m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(String(input));
+  if (m) return `${m[1]} ${m[2]}:${m[3]}:${m[4]}`;
+
+  // Фолбэк: парсим любым браузерным Date и нормализуем
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return String(input);
+  const z = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+}
+
 // --- AUTH STATE ---
 function isAuthorized() {
   return localStorage.getItem("authorized") === "true";
@@ -62,8 +75,7 @@ function updateReviewHistoryTable(projects) {
     row.className = 'hover:bg-surface-800/70 transition-colors';
 
     // Format date
-    const createdDate = new Date(project.created_at);
-    const formattedDate = createdDate.toISOString().split('T')[0];
+    const formattedDate = project.created_at_hms || formatDateTime(project.created_at);
 
     // Determine status badge
     let statusBadge = '';

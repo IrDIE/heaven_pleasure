@@ -7,6 +7,40 @@ import datetime, time
 import threading
 from werkzeug.utils import secure_filename
 
+from pathlib import Path
+import glob, tempfile, shutil, sys
+from typing import Optional
+
+# --- подключаем твой пайплайн как модули ---
+PIPELINE_DIR = Path(__file__).parent / "pipeline"
+if str(PIPELINE_DIR) not in sys.path:
+    sys.path.insert(0, str(PIPELINE_DIR))
+
+import common as pcommon                   # pipeline/common.py
+import build_snippets as bs                # pipeline/build_snippets.py
+import render_review_html as rrh           # pipeline/render_review_html.py
+
+# --- пути ---
+PROJECT_ROOT = Path(__file__).parent.resolve()
+DATA_DIR     = PROJECT_ROOT / "data"
+ASSETS_DIR   = PROJECT_ROOT / "public" / "assets"
+REPORTS_DIR  = PROJECT_ROOT / "review_reports"
+
+SNIPPET_CONTEXT = int(os.environ.get("SNIPPET_CONTEXT", "6"))
+
+def _fmt_dt_for_title(value) -> str:
+    # SQLite отдаёт ISO-строку вида "YYYY-MM-DD HH:MM:SS"
+    import datetime as _dt
+    try:
+        if isinstance(value, _dt.datetime):
+            dt = value
+        else:
+            dt = _dt.datetime.fromisoformat(str(value).replace("Z",""))
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return str(value) if value is not None else ""
+
+
 # Configuration
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"pdf", "zip"}
@@ -301,7 +335,10 @@ def get_user_projects():
                 "description": project["description"],
                 "project_type": project["project_type"],
                 "status": project["status"],
+                # исходное значение как есть
                 "created_at": project["created_at"],
+                # удобная строка с секундами
+                "created_at_hms": _fmt_dt_for_title(project["created_at"]),
                 "review_type": project["review_type"],
             }
         )
@@ -375,7 +412,9 @@ def send_for_review():
         "description": project["description"],
         "project_type": project["project_type"],
         "username": project["username"],
+        "uploaded_at": project["created_at"],   # <— добавили
     }
+
 
     # Start async review process
     process_review_async(project["id"], project_data)
@@ -416,108 +455,137 @@ def get_review_report(project_id):
 
 
 def llm_simulator(data):
-    # Simulate LLM processing
-    time.sleep(10)  # Simulate processing delay
-    return {
-        "summary": f"Simulated summary for project '{data.get('project_name', 'N/A')}'",
-        "issues": [
-            "Issue 1: Code structure could be improved",
-            "Issue 2: Missing documentation",
-            "Issue 3: Potential performance bottlenecks",
-        ],
-        "suggestions": [
-            "Suggestion A: Refactor into smaller functions",
-            "Suggestion B: Add comments for complex logic",
-            "Suggestion C: Consider caching for repeated operations",
-        ],
-    }
-
-
-def llm_answer_to_html_simulator(answer):
-    # Convert LLM answer to HTML format
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Project Review Report</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
-            h2 {{ color: #333; }}
-            h3 {{ color: #555; margin-top: 20px; }}
-            ul {{ margin-left: 20px; }}
-            li {{ margin-bottom: 8px; }}
-        </style>
-    </head>
-    <body>
-        <h2>Project Review Summary</h2>
-        <p>{answer['summary']}</p>
-        <h3>Identified Issues:</h3>
-        <ul>
     """
-    for issue in answer["issues"]:
-        html_content += f"<li>{issue}</li>"
-
-    html_content += """
-        </ul>
-        <h3>Suggestions:</h3>
-        <ul>
+    Заглушка: просто читает data/autoreview.json и возвращает его содержимое.
     """
-    for suggestion in answer["suggestions"]:
-        html_content += f"<li>{suggestion}</li>"
+    time.sleep(10)
+    src = DATA_DIR / "autoreview.json"
+    try:
+        with src.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[llm_simulator] не удалось прочитать {src}: {e}")
+        # безопасный минимум
+        return {"issues": [], "meta": {"overall": "", "highlights": []}}
 
-    html_content += """
-        </ul>
-    </body>
-    </html>
+
+
+def _find_latest_zip(username: Optional[str] = None) -> Optional[Path]:
+    base = PROJECT_ROOT / UPLOAD_FOLDER
+    if username:
+        base = base / username
+    patterns = [str(base / "**" / "project.zip"), str(base / "**" / "*.zip")]
+    candidates = []
+    for pat in patterns:
+        candidates.extend(glob.glob(pat, recursive=True))
+    cand_paths = [Path(p) for p in set(candidates) if os.path.isfile(p)]
+    if not cand_paths:
+        return None
+    cand_paths.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return cand_paths[0]
+
+
+def llm_answer_to_html_simulator(
+    answer, *, username: Optional[str] = None,
+    project_id: Optional[int] = None,
+    project_name: Optional[str] = None,
+    uploaded_at: Optional[str] = None
+) -> str:
     """
-    return html_content
+    ГЕНЕРИРУЕТ ОТЧЁТ ЧЕРЕЗ ПАЙПЛАЙН и сохраняет HTML. Возвращает путь к файлу.
+    """
+    print("[PIPE] llm_answer_to_html_simulator: using pipeline renderer")
+    zip_path = _find_latest_zip(username=username)
+    if not zip_path:
+        raise FileNotFoundError("В uploads/ не найден .zip проекта")
+
+    tempdir = Path(tempfile.mkdtemp(prefix="report_zip_"))
+    try:
+        base = pcommon.extract_zip(zip_path, tempdir)
+        project_root = pcommon.detect_project_root(base, (answer or {}).get("root", ""))
+
+        # добавляем сниппеты
+        review_with_snips = bs.process(answer, project_root, context=SNIPPET_CONTEXT)
+
+        # ассеты
+        css_path = ASSETS_DIR / "upload_theme.css"
+        styles = (css_path.read_text(encoding="utf-8")
+                  if css_path.exists()
+                  else (ASSETS_DIR / "styles.css").read_text(encoding="utf-8"))
+        script = (ASSETS_DIR / "tree.js").read_text(encoding="utf-8")
+
+        # данные и HTML
+        per_file  = rrh.gather_issues_by_file(review_with_snips)
+        tree_json = rrh.build_tree_json(per_file, project_root)
+        overall   = rrh.get_overall(review_with_snips)
+        highlights= rrh.get_highlights(review_with_snips)
+
+        pname = (project_name or "").strip()
+        when  = _fmt_dt_for_title(uploaded_at)
+        # Если названия нет — не показываем его; время всегда в секундах
+        if pname or when:
+            suffix = " ".join(filter(None, [pname, f"({when})" if when else ""]))
+            title = f"AutoReview — {suffix}"
+        else:
+            title = "AutoReview — отчёт по проекту"
+        html_text = rrh.page_html(tree_json, per_file, styles, script, title, overall=overall, highlights=highlights)
+
+        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        out = REPORTS_DIR / f"review_{project_id or 'latest'}_{ts}.html"
+        out.write_text(html_text, encoding="utf-8")
+        print(f"[PIPE] saved: {out}")
+        return str(out.resolve())
+    finally:
+        shutil.rmtree(tempdir, ignore_errors=True)
+
 
 
 def process_review_async(project_id, project_data):
     """Process review asynchronously in a separate thread"""
 
     def review_task():
-        # Simulate LLM processing
+        # 1) Заглушка — читаем data/autoreview.json
         review_result = llm_simulator(project_data)
 
-        # Convert to HTML
-        html_content = llm_answer_to_html_simulator(review_result)
+        # 2) Генерим отчёт пайплайном и сохраняем
+        try:
+            report_path = llm_answer_to_html_simulator(
+                review_result,
+                username=project_data.get("username"),
+                project_id=project_id,
+                project_name=project_data.get("project_name"),
+                uploaded_at=project_data.get("uploaded_at"),
+            )
+        except Exception as e:
+            print(f"[review_task] ошибка генерации отчёта: {e}")
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute(
+                "UPDATE projects SET status = ?, updated_at = ? WHERE id = ?",
+                ("error", datetime.datetime.now(), project_id),
+            )
+            conn.commit(); conn.close()
+            return
 
-        # Save HTML report
-        reports_dir = "review_reports"
-        os.makedirs(reports_dir, exist_ok=True)
-        report_filename = f"review_{project_id}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
-        report_path = os.path.join(reports_dir, report_filename)
-
-        with open(report_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-        # Update database with review results
+        # 3) Обновляем БД
         conn = get_db_connection()
         c = conn.cursor()
         c.execute(
             """UPDATE projects 
-                     SET status = ?, review_html_path = ?, review_completed_at = ?, updated_at = ?
-                     WHERE id = ?""",
-            (
-                "completed",
-                report_path,
-                datetime.datetime.now(),
-                datetime.datetime.now(),
-                project_id,
-            ),
+               SET status = ?, review_html_path = ?, review_completed_at = ?, updated_at = ?
+               WHERE id = ?""",
+            ("completed", report_path, datetime.datetime.now(), datetime.datetime.now(), project_id),
         )
         conn.commit()
         conn.close()
 
-        print(f"Review completed for project {project_id}")
+        print(f"Review completed for project {project_id} -> {report_path}")
 
-    # Start the review process in a separate thread
     thread = threading.Thread(target=review_task)
     thread.daemon = True
     thread.start()
+
 
 
 if __name__ == "__main__":
