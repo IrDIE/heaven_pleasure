@@ -205,7 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-./frontend-project/node_modules/*
 ./frontend-project/package-lock.json
 ./frontend-project/projects.db
-
+./frontend-project/uploads
+./frontend-project/review_reports
+./frontend-project/data
