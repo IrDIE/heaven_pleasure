@@ -11,6 +11,8 @@ from pathlib import Path
 import glob, tempfile, shutil, sys
 from typing import Optional
 
+debug_local = False
+
 # --- подключаем твой пайплайн как модули ---
 PIPELINE_DIR = Path(__file__).parent / "pipeline"
 if str(PIPELINE_DIR) not in sys.path:
@@ -693,4 +695,7 @@ def process_review_async(project_id, project_data):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    if debug_local:
+        app.run(debug=True, port=5000)
+    else:
+        app.run(debug=True, host='0.0.0.0',port='8080')
