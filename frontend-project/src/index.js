@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Sign up link handling (on index.html) ---
   const signupLink = document.getElementById("signup-link");
-  if (path.endsWith("index") && signupLink) {
+  if (path.endsWith("index") && signupLink || path.endsWith("") && signupLink) {
     signupLink.addEventListener("click", (e) => {
       e.preventDefault(); // Prevent default anchor behavior
       signupLink.href = "create-account"; // Set the href attribute
