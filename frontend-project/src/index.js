@@ -257,10 +257,6 @@ document.addEventListener("DOMContentLoaded", () => {
         loginBtn.textContent = 'Log in';
         loginBtn.disabled = false;
       }
-
-      // authorizeUser();
-      // window.location.href = "main_page"; // Redirect to main_page.html
-      // return;
     });
   }
 

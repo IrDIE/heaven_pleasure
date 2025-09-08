@@ -210,3 +210,4 @@ __marimo__/
 ./frontend-project/uploads
 ./frontend-project/review_reports
 ./frontend-project/data
+./frontend-project/users.db
