@@ -14,7 +14,7 @@ A web application that automates code review using AI-powered analysis. Upload y
 
 | Step 1: Authentication | Step 2: Project Upload |
 | :---: | :---: |
-| ![Authentication Process](frontend-project/readme_assets/signup.gif) | ![Project Upload](frontend-project/readme_assets/upload.gif) |
+| ![Authentication Process](https://github.com/IrDIE/heaven_pleasure/blob/frontend/frontend-project/readme_assets/signup.gif) | ![Project Upload](frontend-project/readme_assets/upload.gif) |
 | **1. Create account or login**<br>Secure access to your review dashboard | **2. Submit your project**<br>Upload files or provide repository URL |
 
 | Step 3: AI Analysis | Step 4: Review Results |
