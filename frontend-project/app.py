@@ -28,6 +28,15 @@ REPORTS_DIR  = PROJECT_ROOT / "review_reports"
 
 SNIPPET_CONTEXT = int(os.environ.get("SNIPPET_CONTEXT", "6"))
 
+import zipfile
+from tools.linters import analyze_repository   # если функция в другом файле — поправьте импорт
+
+LINTERS_JSON = DATA_DIR / "linters.json"
+LINTERS_JSON.parent.mkdir(parents=True, exist_ok=True)
+if not LINTERS_JSON.exists():
+    LINTERS_JSON.write_text("[]", encoding="utf-8")
+
+
 def _fmt_dt_for_title(value) -> str:
     # SQLite отдаёт ISO-строку вида "YYYY-MM-DD HH:MM:SS"
     import datetime as _dt
@@ -453,6 +462,37 @@ def get_review_report(project_id):
     except FileNotFoundError:
         return jsonify({"success": False, "message": "Report file not found"}), 404
 
+def _normalize_linter_issues(raw: list[dict]) -> list[dict]:
+    """Приводим линовские ошибки к формату issues, понятному рендеру."""
+    out = []
+    for it in raw or []:
+        rel = (it.get("file") or "").replace("\\", "/").lstrip("./")
+        sev_raw = (it.get("severity") or "").lower()
+        sev = "major" if sev_raw in ("error", "fatal") else "minor"
+        out.append({
+            "id": it.get("rule") or "lint",
+            "file": rel,
+            "line": int(it.get("line") or 1),
+            "column": it.get("column"),
+            "severity": sev,
+            "title": it.get("rule") or (it.get("message") or "Lint issue")[:80],
+            "message": it.get("message") or "",
+            "source": it.get("tool") or "linters",
+            # для рендера / бейджа:
+            "_source": "Linters",
+            "_sev": sev,
+            "_title": it.get("rule") or (it.get("message") or "Lint issue")[:80],
+            "_desc": it.get("message") or "",
+        })
+    return out
+
+def _merge_per_file(*dicts: dict[str, list[dict]]) -> dict[str, list[dict]]:
+    """Склеиваем словари {file: [issues]} с сохранением порядка."""
+    merged: dict[str, list[dict]] = {}
+    for d in dicts:
+        for rel, items in (d or {}).items():
+            merged.setdefault(rel, []).extend(items)
+    return merged
 
 def llm_simulator(data):
     """
@@ -484,6 +524,33 @@ def _find_latest_zip(username: Optional[str] = None) -> Optional[Path]:
     cand_paths.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return cand_paths[0]
 
+def _run_linters_for_user(username: Optional[str]) -> dict:
+    """
+    Берёт последний uploads/<user>/**/project.zip, распаковывает во временную папку,
+    запускает analyze_repository и пишет результат в data/linters.json.
+    """
+    zip_path = _find_latest_zip(username=username)
+    if not zip_path:
+        raise FileNotFoundError("В uploads/ не найден zip для запуска линтеров")
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="linters_"))
+    repo_dir = tmp_dir / "repo"
+    repo_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as z:
+            z.extractall(repo_dir)
+
+        issues, _ = analyze_repository(str(repo_dir), keep=False, verbose=False)
+
+        with open(LINTERS_JSON, "w", encoding="utf-8") as f:
+            json.dump(issues, f, ensure_ascii=False, indent=2)
+
+        return {"linters_count": len(issues), "linters_json": str(LINTERS_JSON)}
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 
 def llm_answer_to_html_simulator(
     answer, *, username: Optional[str] = None,
@@ -491,9 +558,6 @@ def llm_answer_to_html_simulator(
     project_name: Optional[str] = None,
     uploaded_at: Optional[str] = None
 ) -> str:
-    """
-    ГЕНЕРИРУЕТ ОТЧЁТ ЧЕРЕЗ ПАЙПЛАЙН и сохраняет HTML. Возвращает путь к файлу.
-    """
     print("[PIPE] llm_answer_to_html_simulator: using pipeline renderer")
     zip_path = _find_latest_zip(username=username)
     if not zip_path:
@@ -504,32 +568,53 @@ def llm_answer_to_html_simulator(
         base = pcommon.extract_zip(zip_path, tempdir)
         project_root = pcommon.detect_project_root(base, (answer or {}).get("root", ""))
 
-        # добавляем сниппеты
-        review_with_snips = bs.process(answer, project_root, context=SNIPPET_CONTEXT)
+        # 1) LLM-issues → добавляем сниппеты
+        review_llm = bs.process(answer, project_root, context=SNIPPET_CONTEXT)
 
-        # ассеты
-        css_path = ASSETS_DIR / "upload_theme.css"
+        # 2) Linters → читаем, нормализуем и тоже добавляем сниппеты
+        linters_raw = json.loads((LINTERS_JSON).read_text(encoding="utf-8")) if LINTERS_JSON.exists() else []
+        linters_norm = _normalize_linter_issues(linters_raw)
+        # прогоняем через тот же билд-сниппетов (обёртываем во временный review-словарь)
+        linters_review_like = {"issues": linters_norm}
+        linters_with_snips = bs.process(linters_review_like, project_root, context=SNIPPET_CONTEXT)
+
+        # 3) Собираем per_file отдельно и склеиваем (LLM + Linters)
+        per_file_llm     = rrh.gather_issues_by_file(review_llm)
+        per_file_linters = rrh.gather_issues_by_file(linters_with_snips)
+        per_file_all     = _merge_per_file(per_file_llm, per_file_linters)
+
+        # 4) Строим дерево по объединённым данным
+        tree_json = rrh.build_tree_json(per_file_all, project_root)
+
+        # 5) Текстовые блоки из LLM
+        overall    = rrh.get_overall(review_llm)
+        highlights = rrh.get_highlights(review_llm)
+
+        # 6) Статика
+        css_path = ASSETS_DIR / "assets" / "upload_theme.css" if (ASSETS_DIR / "assets").exists() else ASSETS_DIR / "upload_theme.css"
+        # на случай, если assets у тебя лежат в public/assets — пробуем оба варианта
+        if not css_path.exists():
+            css_path = PROJECT_ROOT / "assets" / "upload_theme.css"
         styles = (css_path.read_text(encoding="utf-8")
                   if css_path.exists()
-                  else (ASSETS_DIR / "styles.css").read_text(encoding="utf-8"))
-        script = (ASSETS_DIR / "tree.js").read_text(encoding="utf-8")
+                  else (PROJECT_ROOT / "assets" / "styles.css").read_text(encoding="utf-8"))
+        # tree.js также пробуем по обоим путям
+        script_path = ASSETS_DIR / "assets" / "tree.js" if (ASSETS_DIR / "assets").exists() else ASSETS_DIR / "tree.js"
+        if not script_path.exists():
+            script_path = PROJECT_ROOT / "assets" / "tree.js"
+        script = script_path.read_text(encoding="utf-8")
 
-        # данные и HTML
-        per_file  = rrh.gather_issues_by_file(review_with_snips)
-        tree_json = rrh.build_tree_json(per_file, project_root)
-        overall   = rrh.get_overall(review_with_snips)
-        highlights= rrh.get_highlights(review_with_snips)
-
+        # 7) Заголовок
         pname = (project_name or "").strip()
         when  = _fmt_dt_for_title(uploaded_at)
-        # Если названия нет — не показываем его; время всегда в секундах
-        if pname or when:
-            suffix = " ".join(filter(None, [pname, f"({when})" if when else ""]))
-            title = f"AutoReview — {suffix}"
-        else:
-            title = "AutoReview — отчёт по проекту"
-        html_text = rrh.page_html(tree_json, per_file, styles, script, title, overall=overall, highlights=highlights)
+        suffix = " ".join(filter(None, [pname, f"({when})" if when else ""]))
+        title = f"AutoReview — {suffix}" if suffix else "AutoReview — отчёт по проекту"
 
+        # 8) Рендер
+        html_text = rrh.page_html(tree_json, per_file_all, styles, script, title,
+                                  overall=overall, highlights=highlights)
+
+        # 9) Сохраняем
         REPORTS_DIR.mkdir(parents=True, exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         out = REPORTS_DIR / f"review_{project_id or 'latest'}_{ts}.html"
@@ -541,14 +626,22 @@ def llm_answer_to_html_simulator(
 
 
 
+
 def process_review_async(project_id, project_data):
     """Process review asynchronously in a separate thread"""
 
     def review_task():
-        # 1) Заглушка — читаем data/autoreview.json
+        # A) СНАЧАЛА прогоняем линтеры и сохраняем data/linters.json
+        try:
+            linters_res = _run_linters_for_user(project_data.get("username"))
+            print(f"[linters] saved: {linters_res}")
+        except Exception as e:
+            print(f"[linters] warning: {e}")
+
+        # B) Потом — заглушка LLM
         review_result = llm_simulator(project_data)
 
-        # 2) Генерим отчёт пайплайном и сохраняем
+        # C) Генерация HTML-отчёта пайплайном
         try:
             report_path = llm_answer_to_html_simulator(
                 review_result,
@@ -568,7 +661,7 @@ def process_review_async(project_id, project_data):
             conn.commit(); conn.close()
             return
 
-        # 3) Обновляем БД
+        # D) Обновляем БД
         conn = get_db_connection()
         c = conn.cursor()
         c.execute(
@@ -585,6 +678,7 @@ def process_review_async(project_id, project_data):
     thread = threading.Thread(target=review_task)
     thread.daemon = True
     thread.start()
+
 
 
 
