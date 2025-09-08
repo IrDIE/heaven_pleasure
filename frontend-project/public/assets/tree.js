@@ -101,11 +101,15 @@
     }
 
     const blocks = issues.map(it=>{
-      const sev = (it._sev||'minor');
+      const sev  = (it._sev || it.severity || 'minor').toLowerCase();
+      const src  = it._source || it.source || 'LLM';            // ← метка источника
       const fileTag = it.file_resolved || it.file || it.path || relPath;
+
       const badges = `
         <span class="badge b-${sev==='critical'?'crit':sev}">${sev}</span>
+        <span class="badge">${esc(src)}</span>                  <!-- ← бейдж источника -->
         <span class="badge">${esc(fileTag)}${it.line?':'+it.line:''}</span>`;
+
       return `
         <div class="issue">
           <h3>${esc(it.id||'')}${it._title?' · '+esc(it._title):''}</h3>
@@ -120,6 +124,7 @@
     const firstHL = elContent.querySelector('.code-line.hl');
     if(firstHL) firstHL.scrollIntoView({behavior:'smooth', block:'center'});
   }
+
 
   // Поиск по именам узлов (файлы/папки)
   const search = document.getElementById('search');
