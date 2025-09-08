@@ -1,0 +1,920 @@
+[
+  {
+    "file": "fonts/fonts.css",
+    "line": 4,
+    "column": 16,
+    "message": "Unexpected quotes around \"Inter-Variable\" (font-family-name-quotes)",
+    "rule": "font-family-name-quotes",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 127,
+    "column": 12,
+    "message": "Expected \"0.5\" to be \"50%\" (alpha-value-notation)",
+    "rule": "alpha-value-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 269,
+    "column": 12,
+    "message": "Expected \"0\" to be \"0%\" (alpha-value-notation)",
+    "rule": "alpha-value-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 310,
+    "column": 35,
+    "message": "Expected \"0.75\" to be \"75%\" (alpha-value-notation)",
+    "rule": "alpha-value-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 310,
+    "column": 21,
+    "message": "Expected \"rgba\" to be \"rgb\" (color-function-alias-notation)",
+    "rule": "color-function-alias-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 310,
+    "column": 21,
+    "message": "Expected modern color-function notation (color-function-notation)",
+    "rule": "color-function-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 174,
+    "column": 24,
+    "message": "Unexpected unit (length-zero-no-unit)",
+    "rule": "length-zero-no-unit",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 174,
+    "column": 28,
+    "message": "Unexpected unit (length-zero-no-unit)",
+    "rule": "length-zero-no-unit",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 252,
+    "column": 1,
+    "message": "Expected selector \".heart\" to come before selector \".like-icon.is-liked .heart\", at line 244 (no-descending-specificity)",
+    "rule": "no-descending-specificity",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 256,
+    "column": 1,
+    "message": "Expected selector \".contour\" to come before selector \".like-icon.is-liked .contour\", at line 229 (no-descending-specificity)",
+    "rule": "no-descending-specificity",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 260,
+    "column": 1,
+    "message": "Expected selector \".main-body\" to come before selector \".like-icon:hover .main-body\", at line 214 (no-descending-specificity)",
+    "rule": "no-descending-specificity",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 264,
+    "column": 1,
+    "message": "Expected selector \".core\" to come before selector \".like-icon:hover .core\", at line 209 (no-descending-specificity)",
+    "rule": "no-descending-specificity",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 268,
+    "column": 1,
+    "message": "Expected selector \".sparks\" to come before selector \".like-icon.is-liked .sparks\", at line 248 (no-descending-specificity)",
+    "rule": "no-descending-specificity",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 320,
+    "column": 1,
+    "message": "Expected selector \".dialog__description svg\" to come before selector \".card__icon-button:focus-visible svg\", at line 205 (no-descending-specificity)",
+    "rule": "no-descending-specificity",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 140,
+    "column": 5,
+    "message": "Unexpected unknown property \"text-stroke\" (property-no-unknown)",
+    "rule": "property-no-unknown",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 29,
+    "column": 3,
+    "message": "Expected empty line before rule (rule-empty-line-before)",
+    "rule": "rule-empty-line-before",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 29,
+    "column": 3,
+    "message": "Expected \".card__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 33,
+    "column": 3,
+    "message": "Expected \".card__description\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 37,
+    "column": 3,
+    "message": "Expected \".accent-card__description\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 41,
+    "column": 3,
+    "message": "Expected \".accent-card__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 54,
+    "column": 1,
+    "message": "Expected \".header__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 59,
+    "column": 1,
+    "message": "Expected \".header__additional-title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 63,
+    "column": 1,
+    "message": "Expected \".card__list\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 76,
+    "column": 1,
+    "message": "Expected \".card__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 81,
+    "column": 1,
+    "message": "Expected \".image__container\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 87,
+    "column": 1,
+    "message": "Expected \".card__image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 95,
+    "column": 1,
+    "message": "Expected \".invert-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 99,
+    "column": 1,
+    "message": "Expected \".saturate-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 103,
+    "column": 1,
+    "message": "Expected \".sepia-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 107,
+    "column": 1,
+    "message": "Expected \".no-contract-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 111,
+    "column": 1,
+    "message": "Expected \".hue-rotate-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 115,
+    "column": 1,
+    "message": "Expected \".blur-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 119,
+    "column": 1,
+    "message": "Expected \".grayscale-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 123,
+    "column": 1,
+    "message": "Expected \".card__label\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 137,
+    "column": 3,
+    "message": "Expected \".card__label\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 144,
+    "column": 1,
+    "message": "Expected \".description__container\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 151,
+    "column": 1,
+    "message": "Expected \".button__container\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 157,
+    "column": 1,
+    "message": "Expected \".card__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 169,
+    "column": 1,
+    "message": "Expected \".card__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 173,
+    "column": 1,
+    "message": "Expected \".card__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 177,
+    "column": 1,
+    "message": "Expected \".card__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 190,
+    "column": 1,
+    "message": "Expected \".card__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 194,
+    "column": 1,
+    "message": "Expected \".card__icon-button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 200,
+    "column": 1,
+    "message": "Expected \".card__icon-button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 205,
+    "column": 1,
+    "message": "Expected \".card__icon-button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 209,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 214,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 214,
+    "column": 18,
+    "message": "Expected \".main-body\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 219,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 224,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 224,
+    "column": 19,
+    "message": "Expected \".main-body\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 229,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 229,
+    "column": 11,
+    "message": "Expected \".is-liked\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 234,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 234,
+    "column": 11,
+    "message": "Expected \".is-liked\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 234,
+    "column": 21,
+    "message": "Expected \".main-body\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 239,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 239,
+    "column": 11,
+    "message": "Expected \".is-liked\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 244,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 244,
+    "column": 11,
+    "message": "Expected \".is-liked\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 248,
+    "column": 1,
+    "message": "Expected \".like-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 248,
+    "column": 11,
+    "message": "Expected \".is-liked\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 260,
+    "column": 1,
+    "message": "Expected \".main-body\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 272,
+    "column": 1,
+    "message": "Expected \".card__like-button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 276,
+    "column": 1,
+    "message": "Expected \".button__text\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 286,
+    "column": 1,
+    "message": "Expected \".open__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 295,
+    "column": 1,
+    "message": "Expected \".floppy-svg\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 301,
+    "column": 1,
+    "message": "Expected \".save__dialog\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 309,
+    "column": 1,
+    "message": "Expected \".save__dialog\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 313,
+    "column": 1,
+    "message": "Expected \".save__dialog\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 313,
+    "column": 21,
+    "message": "Expected \".dialog__description\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 320,
+    "column": 1,
+    "message": "Expected \".dialog__description\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 326,
+    "column": 1,
+    "message": "Expected \".dialog__text\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 335,
+    "column": 1,
+    "message": "Expected \".dialog__button__text\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 340,
+    "column": 3,
+    "message": "Expected \".card__list\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 344,
+    "column": 3,
+    "message": "Expected \".card__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 348,
+    "column": 3,
+    "message": "Expected \".description__container\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 353,
+    "column": 3,
+    "message": "Expected \".card__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 353,
+    "column": 21,
+    "message": "Expected \".open__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 357,
+    "column": 3,
+    "message": "Expected \".open__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 361,
+    "column": 3,
+    "message": "Expected \".open__button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 366,
+    "column": 3,
+    "message": "Expected \".save__dialog\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 370,
+    "column": 3,
+    "message": "Expected \".save__dialog\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/style.css",
+    "line": 370,
+    "column": 23,
+    "message": "Expected \".dialog__description\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/animations.css",
+    "line": 21,
+    "column": 14,
+    "message": "Expected \"1\" to be \"100%\" (alpha-value-notation)",
+    "rule": "alpha-value-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/globals.css",
+    "line": 48,
+    "column": 3,
+    "message": "Unexpected deprecated property \"clip\" (property-no-deprecated)",
+    "rule": "property-no-deprecated",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/globals.css",
+    "line": 45,
+    "column": 1,
+    "message": "Expected \".visually-hidden\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/globals.css",
+    "line": 55,
+    "column": 1,
+    "message": "Expected \".page__component\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/globals.css",
+    "line": 35,
+    "column": 10,
+    "message": "Expected \"currentColor\" to be \"currentcolor\" (value-keyword-case)",
+    "rule": "value-keyword-case",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 13,
+    "column": 27,
+    "message": "Expected \"0\" to be \"0%\" (alpha-value-notation)",
+    "rule": "alpha-value-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 18,
+    "column": 27,
+    "message": "Expected \"0\" to be \"0%\" (alpha-value-notation)",
+    "rule": "alpha-value-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 13,
+    "column": 7,
+    "message": "Expected \"rgba\" to be \"rgb\" (color-function-alias-notation)",
+    "rule": "color-function-alias-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 18,
+    "column": 7,
+    "message": "Expected \"rgba\" to be \"rgb\" (color-function-alias-notation)",
+    "rule": "color-function-alias-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 13,
+    "column": 7,
+    "message": "Expected modern color-function notation (color-function-notation)",
+    "rule": "color-function-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 18,
+    "column": 7,
+    "message": "Expected modern color-function notation (color-function-notation)",
+    "rule": "color-function-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 34,
+    "column": 27,
+    "message": "Expected \"#ff0000\" to be \"#f00\" (color-hex-length)",
+    "rule": "color-hex-length",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 22,
+    "column": 3,
+    "message": "Unexpected empty line before custom property (custom-property-empty-line-before)",
+    "rule": "custom-property-empty-line-before",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 24,
+    "column": 3,
+    "message": "Unexpected empty line before custom property (custom-property-empty-line-before)",
+    "rule": "custom-property-empty-line-before",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 27,
+    "column": 3,
+    "message": "Unexpected empty line before custom property (custom-property-empty-line-before)",
+    "rule": "custom-property-empty-line-before",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 29,
+    "column": 3,
+    "message": "Unexpected empty line before custom property (custom-property-empty-line-before)",
+    "rule": "custom-property-empty-line-before",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 33,
+    "column": 3,
+    "message": "Unexpected empty line before custom property (custom-property-empty-line-before)",
+    "rule": "custom-property-empty-line-before",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "styles/variables.css",
+    "line": 25,
+    "column": 36,
+    "message": "Expected \"7.65625\" to be \"7.6563\" (number-max-precision)",
+    "rule": "number-max-precision",
+    "severity": "error",
+    "tool": "stylelint"
+  }
+]
