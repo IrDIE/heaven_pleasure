@@ -83,13 +83,59 @@ pre.code{background:#0a0a0a;color:#f3f4f6;border-radius:10px;padding:10px 12px;o
 .code-line.hl{background:rgba(255,255,255,.06)}
 
 /* --- code snippet: horizontal scroll + no wrapping --- */
-#content pre {
-  overflow-x: auto;        /* показать нижний скролл, если строки длинные */
-  white-space: pre;        /* не переносить строки */
-  word-break: normal;      /* не ломать слова */
+
+/* #content pre {
+  overflow-x: auto;        
+  white-space: pre;       
+  word-break: normal;     
   margin: 0;
-}
+} */
 /* на случай <code> внутри <pre> */
-#content pre code { white-space: inherit; }
+/* #content pre code { white-space: inherit; } */
 /* чтобы длинные строки не «ужимались» и реально появлялся скролл */
-#content pre { min-width: 0; }
+/* #content pre { min-width: 0; }  */
+
+
+/* code */
+pre.code {
+  background: #0a0a0a;
+  color: #f3f4f6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  overflow: auto;
+  margin: 8px 0 0;
+  white-space: pre;        /* Don't wrap lines */
+  word-break: normal;      /* Don't break words */
+}
+
+.code-line {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  min-width: min-content;  /* Prevent grid from shrinking too much */
+}
+
+.code-line .ln {
+  color: #9ca3af;
+  text-align: right;
+  user-select: none;       /* Prevent line number selection */
+}
+
+.code-line .lc {
+  white-space: pre;        /* Preserve whitespace and don't wrap */
+  overflow: visible;       /* Allow content to overflow */
+  min-width: 0;           /* Allow shrinking */
+}
+
+.code-line.hl {
+  background: rgba(255, 255, 255, .06);
+}
+
+/* Ensure code inside pre inherits the white-space behavior */
+pre.code code {
+  white-space: inherit;
+  display: block;
+  min-width: 100%;        /* Force horizontal scroll when needed */
+}

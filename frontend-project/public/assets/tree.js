@@ -85,7 +85,11 @@
       const lnNo = start + i;
       const cls = (typeof hi==='number' && i===hi) ? 'code-line hl' : 'code-line';
       const safe = esc(ln).replace(/ /g, '&nbsp;'); // сохраняем пробелы
-      return `<div class="${cls}"><span class="ln">${lnNo}</span><span class="lc">${safe}</span></div>`;
+      
+      return `<div class="${cls}">
+        <span class="ln">${lnNo}</span>
+        <span class="lc">${safe}</span>
+      </div>`;
     }).join('');
 
     return `<pre class="code"><code>${lines}</code></pre>`;
