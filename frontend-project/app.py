@@ -529,10 +529,10 @@ def llm_answer_to_html_simulator(
         else:
             title = "AutoReview — отчёт по проекту"
         html_text = rrh.page_html(tree_json, per_file, styles, script, title, overall=overall, highlights=highlights)
-
-        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        reports_dir_rel = REPORTS_DIR / username
+        reports_dir_rel.mkdir(parents=True, exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        out = REPORTS_DIR / f"review_{project_id or 'latest'}_{ts}.html"
+        out = reports_dir_rel / f"review_{project_id or 'latest'}_{ts}.html"
         out.write_text(html_text, encoding="utf-8")
         print(f"[PIPE] saved: {out}")
         return str(out.resolve())
@@ -571,6 +571,7 @@ def process_review_async(project_id, project_data):
         # 3) Обновляем БД
         conn = get_db_connection()
         c = conn.cursor()
+        print(f"UPDATE review_html_path")
         c.execute(
             """UPDATE projects 
                SET status = ?, review_html_path = ?, review_completed_at = ?, updated_at = ?
