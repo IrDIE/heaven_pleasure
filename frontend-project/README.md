@@ -1,50 +1,46 @@
-# Frontend Project Documentation
+# AutoReview
 
-## Project Overview
-This project is a frontend web application that utilizes HTML files for different pages, including authentication, account creation, and a main page. It is designed to be easily integrated with a backend API and can be run both locally and remotely.
+A web application that automates code review using AI-powered analysis. Upload your projects and receive comprehensive feedback on code quality, potential issues, and improvement suggestions.
 
-## Project Structure
-```
-frontend-project
-├── public
-│   ├── authentication.html  # HTML structure for the authentication page
-│   ├── create-accaunt.html  # HTML structure for the account creation page
-│   └── main_page.html       # HTML structure for the main page of the application
-├── src
-│   └── index.js             # Entry point for JavaScript code, handles routing and events
-├── package.json             # Configuration file for npm, lists project dependencies
-├── runtime.sh               # Script to set up the environment or run necessary scripts
-└── README.md                # Documentation for the project
-```
+## Features
 
-## Setup Instructions
+- **User Authentication**: Secure login and registration system
+- **Project Upload**: Support for file uploads (ZIP, PDF) and URL submissions
+- **AI-Powered Reviews**: Automated code analysis with simulated LLM processing
+- **Review History**: Track all your submissions and their status
+- **Detailed Reports**: HTML-based review reports with issues and suggestions
 
-1. **Navigate to the project directory:**
-   ```
-   cd /workspaces/HACK/frontend-project
-   ```
+## How It Works
 
-2. **Install the necessary dependencies:**
-   ```
-   npm install
-   ```
+| Step 1: Authentication | Step 2: Project Upload |
+| :---: | :---: |
+| ![Authentication Process](frontend-project/readme_assets/signup.gif) | ![Project Upload](frontend-project/readme_assets/upload.gif) |
+| **1. Create account or login**<br>Secure access to your review dashboard | **2. Submit your project**<br>Upload files or provide repository URL |
 
-3. **Start a local server to serve the HTML files.** You can use a simple server like `http-server` or `lite-server`. If you don't have it installed, you can add it as a dependency:
-   ```
-   npm install --save-dev lite-server
-   ```
+| Step 3: AI Analysis | Step 4: Review Results |
+| :---: | :---: |
+| ![Analysis Process](frontend-project/readme_assets/send-to-review.gif) | ![Review Results](frontend-project/readme_assets/view-report.gif) |
+| **3. Automated code review**<br>AI system analyzes your code quality | **4. Receive detailed feedback**<br>Get actionable insights and suggestions |
 
-4. **Update the `package.json` file to include a start script.** Add the following line under "scripts":
-   ```json
-   "start": "lite-server"
-   ```
 
-5. **Run the following command to start the server:**
-   ```
-   npm start
-   ```
+## Technology Stack
 
-6. **Open your web browser and navigate to** `http://localhost:3000` **to view the application.**
+- **Backend**: Python Flask with SQLite database
+- **Frontend**: HTML, CSS, JavaScript with Tailwind CSS
+- **Authentication**: Session-based with password hashing
+- **File Processing**: Secure upload handling and storage
 
-## Remote Deployment
-For remote deployment, you can use services like Vercel, Netlify, or any cloud hosting provider that supports static sites. Ensure that your backend API is accessible from the deployed frontend.
+## Installation
+
+1. Clone the repository
+2. Install dependencies: `pip install flask flask-cors werkzeug`
+3. Run the application: `python app.py`
+4. Open `http://localhost:5000` in your browser
+
+## API Endpoints
+
+- `POST /api/login` - User authentication
+- `POST /api/create-account` - User registration  
+- `POST /api/upload-project` - Project submission
+- `POST /api/send-for-review` - Initiate code analysis
+- `GET /api/user-projects` - Retrieve review history

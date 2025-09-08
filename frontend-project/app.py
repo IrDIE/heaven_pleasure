@@ -6,7 +6,7 @@ import sqlite3
 import datetime, time
 import threading
 from werkzeug.utils import secure_filename
-
+from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
 import glob, tempfile, shutil, sys
 from typing import Optional
@@ -58,6 +58,29 @@ users = {"t": {"password": "t", "name": "Test User"}}
 htmls_path = "./public/"
 
 
+# Database initialization
+def init_db_users():
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  username TEXT UNIQUE NOT NULL,
+                  password_hash TEXT NOT NULL,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  last_login TIMESTAMP)''')
+    conn.commit()
+    conn.close()
+
+# Initialize the database
+init_db_users()
+
+def get_db_connection_users():
+    conn = sqlite3.connect('users.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+
 @app.route("/")
 def serve_indexroot():
     return send_from_directory(".", os.path.join(htmls_path, "index.html"))
@@ -95,14 +118,30 @@ def login():
     password = data.get("password")
     print(f"\n\nGOT from logit {username}, {password}\n\n")
 
-    if username in users and users[username]["password"] == password:
-        return jsonify(
-            {
-                "success": True,
-                "message": "Login successful",
-                "user": {"username": username, "name": users[username]["name"]},
+    conn = get_db_connection_users()
+    c = conn.cursor()
+    
+    # Get user from database
+    c.execute("SELECT * FROM users WHERE username = ?", (username,))
+    user = c.fetchone()
+    conn.close()
+
+    if user and check_password_hash(user['password_hash'], password):
+        # Update last login time
+        conn = get_db_connection_users()
+        c = conn.cursor()
+        c.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE username = ?", (username,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user": {
+                "username": username, 
+                "name": username
             }
-        )
+        })
     else:
         return (
             jsonify({"success": False, "message": "Invalid username or password"}),
@@ -115,24 +154,70 @@ def create_account():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
-    print(f"\n\nGOT NEW USER  {username}, {password}\n\n")
+    print(f"\n\nCreating new user: {username, password}\n\n")
 
     # Validation
     if not username or not password:
         return (
-            jsonify(
-                {"success": False, "message": "Username and password are required"}
-            ),
+            jsonify({
+                "success": False, 
+                "message": "Username and password are required"
+            }),
             400,
         )
 
-    if username in users:
+    if len(username) < 3:
+        return (
+            jsonify({
+                "success": False, 
+                "message": "Username must be at least 3 characters long"
+            }),
+            400,
+        )
+
+    if len(password) < 6:
+        return (
+            jsonify({
+                "success": False, 
+                "message": "Password must be at least 6 characters long"
+            }),
+            400,
+        )
+
+    conn = get_db_connection_users()
+    c = conn.cursor()
+    
+    # Check if username already exists
+    c.execute("SELECT id FROM users WHERE username = ?", (username,))
+    if c.fetchone():
+        conn.close()
         return jsonify({"success": False, "message": "Username already exists"}), 409
 
-    # Store new user
-    users[username] = {"password": password}
-
-    return jsonify({"success": True, "message": "Account created successfully"})
+    # Hash password and store new user
+    password_hash = generate_password_hash(password)
+    
+    try:
+        c.execute(
+            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+            (username, password_hash)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True, 
+            "message": "Account created successfully",
+            "user": {
+                "username": username,
+                "name": username
+            }
+        })
+    except sqlite3.Error as e:
+        conn.close()
+        return jsonify({
+            "success": False, 
+            "message": f"Database error: {str(e)}"
+        }), 500
 
 
 # Initialize database
@@ -162,6 +247,7 @@ def init_db():
 
 
 init_db()
+
 
 
 def allowed_file(filename):
@@ -351,16 +437,33 @@ def my_last_review():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
-    print(f"\n\nGOT from logit {username}, {password}\n\n")
+    print(f"\n\nLast review request for user: {username}\n\n")
 
-    if username in users and users[username]["password"] == password:
-        return jsonify(
-            {
-                "success": True,
-                "message": "Login successful",
-                "user": {"username": username, "name": users[username]["name"]},
+    conn = get_db_connection_users()
+    c = conn.cursor()
+    
+    # Verify user credentials
+    c.execute("SELECT * FROM users WHERE username = ?", (username,))
+    user = c.fetchone()
+    conn.close()
+
+    if user and check_password_hash(user['password_hash'], password):
+        # Here you would typically fetch the user's last review from a reviews table
+        # For now, we'll return a mock response
+        return jsonify({
+            "success": True,
+            "message": "Last review retrieved successfully",
+            "review": {
+                "id": 1,
+                "title": "Sample Review",
+                "date": "2023-12-15",
+                "status": "completed"
+            },
+            "user": {
+                "username": username, 
+                "name": username
             }
-        )
+        })
     else:
         return (
             jsonify({"success": False, "message": "Invalid username or password"}),
