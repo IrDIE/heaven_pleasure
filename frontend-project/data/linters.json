@@ -1,1 +1,389 @@
-[]
+[
+  {
+    "file": "ono-tebe-nado-fd-main/fonts/fonts.css",
+    "line": 4,
+    "column": 9,
+    "message": "Expected quotes around \"url\" function argument (function-url-quotes)",
+    "rule": "function-url-quotes",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/fonts/fonts.css",
+    "line": 5,
+    "column": 9,
+    "message": "Expected quotes around \"url\" function argument (function-url-quotes)",
+    "rule": "function-url-quotes",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/fonts/fonts.css",
+    "line": 13,
+    "column": 9,
+    "message": "Expected quotes around \"url\" function argument (function-url-quotes)",
+    "rule": "function-url-quotes",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/fonts/fonts.css",
+    "line": 14,
+    "column": 9,
+    "message": "Expected quotes around \"url\" function argument (function-url-quotes)",
+    "rule": "function-url-quotes",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/global.css",
+    "line": 27,
+    "column": 16,
+    "message": "Unexpected quotes around \"Raleway\" (font-family-name-quotes)",
+    "rule": "font-family-name-quotes",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/global.css",
+    "line": 34,
+    "column": 16,
+    "message": "Unexpected quotes around \"Raleway\" (font-family-name-quotes)",
+    "rule": "font-family-name-quotes",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/global.css",
+    "line": 27,
+    "column": 16,
+    "message": "Unexpected missing generic font family (font-family-no-missing-generic-family-keyword)",
+    "rule": "font-family-no-missing-generic-family-keyword",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/global.css",
+    "line": 34,
+    "column": 16,
+    "message": "Unexpected missing generic font family (font-family-no-missing-generic-family-keyword)",
+    "rule": "font-family-no-missing-generic-family-keyword",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 78,
+    "column": 33,
+    "message": "Expected \"0.6\" to be \"60%\" (alpha-value-notation)",
+    "rule": "alpha-value-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 78,
+    "column": 19,
+    "message": "Expected \"rgba\" to be \"rgb\" (color-function-alias-notation)",
+    "rule": "color-function-alias-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 78,
+    "column": 19,
+    "message": "Expected modern color-function notation (color-function-notation)",
+    "rule": "color-function-notation",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 16,
+    "column": 1,
+    "message": "Expected \".header__menu\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 26,
+    "column": 1,
+    "message": "Expected \".list__marker\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 33,
+    "column": 1,
+    "message": "Expected \".header__links-list-item\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 37,
+    "column": 1,
+    "message": "Expected \".header__link_active\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 41,
+    "column": 1,
+    "message": "Expected \".logo__black\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 60,
+    "column": 1,
+    "message": "Expected \".address__header\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 81,
+    "column": 1,
+    "message": "Expected \".cover__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 116,
+    "column": 1,
+    "message": "Expected \".cover__description\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 131,
+    "column": 1,
+    "message": "Expected \".bet-button\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 148,
+    "column": 1,
+    "message": "Expected \".lots__heading\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 156,
+    "column": 1,
+    "message": "Expected \".lots__card-list\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 164,
+    "column": 1,
+    "message": "Expected \".lots__card-list-item\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 170,
+    "column": 1,
+    "message": "Expected \".card-link\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 186,
+    "column": 1,
+    "message": "Expected \".card_type_film\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 190,
+    "column": 1,
+    "message": "Expected \".card_type_book\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 194,
+    "column": 1,
+    "message": "Expected \".card_type_picture\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 198,
+    "column": 1,
+    "message": "Expected \".card__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 207,
+    "column": 1,
+    "message": "Expected \".card__text\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 211,
+    "column": 1,
+    "message": "Expected \".lots__look-more-link\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 224,
+    "column": 1,
+    "message": "Expected \".about__column\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 231,
+    "column": 1,
+    "message": "Expected \".about__logo\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 243,
+    "column": 1,
+    "message": "Expected \".about__logo-image\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 247,
+    "column": 1,
+    "message": "Expected \".about__title\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 260,
+    "column": 1,
+    "message": "Expected \".about__text\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 279,
+    "column": 1,
+    "message": "Expected \".address_slyle\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 284,
+    "column": 1,
+    "message": "Expected \".footer__menu-list\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 288,
+    "column": 1,
+    "message": "Expected \".footer__menu-list-item\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 295,
+    "column": 1,
+    "message": "Expected \".footer__menu-link\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 300,
+    "column": 1,
+    "message": "Expected \".footer__menu-link_active\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 304,
+    "column": 1,
+    "message": "Expected \".footer__social-list-item\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 310,
+    "column": 1,
+    "message": "Expected \".footer__social-link\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  },
+  {
+    "file": "ono-tebe-nado-fd-main/styles/style.css",
+    "line": 315,
+    "column": 1,
+    "message": "Expected \".footer__social-icon\" to match pattern \"^[a-z][a-zA-Z0-9]+$\" (selector-class-pattern)",
+    "rule": "selector-class-pattern",
+    "severity": "error",
+    "tool": "stylelint"
+  }
+]

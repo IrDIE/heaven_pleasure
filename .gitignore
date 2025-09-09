@@ -213,6 +213,7 @@ __marimo__/
 ./frontend-project/data
 ./frontend-project/users.db
 frontend-project/node_modules/*
+*.jar
 .DS_Store
 code_review_workspace
 origin/backend
