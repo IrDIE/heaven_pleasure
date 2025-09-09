@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 from pathlib import Path
 import glob, tempfile, shutil, sys
-from typing import Optional
+from typing import Optional, Tuple
 
 # --- подключаем твой пайплайн как модули ---
 PIPELINE_DIR = Path(__file__).parent / "pipeline"
@@ -30,12 +30,21 @@ SNIPPET_CONTEXT = int(os.environ.get("SNIPPET_CONTEXT", "6"))
 
 import zipfile
 from tools.linters import analyze_repository   # если функция в другом файле — поправьте импорт
+from src.llm.multiagent import get_reviewer_singleton
 
 LINTERS_JSON = DATA_DIR / "linters.json"
-LINTERS_JSON.parent.mkdir(parents=True, exist_ok=True)
+MULTIAGENT_JSON = DATA_DIR / "multiagent.json"
+
+REVIEWER = get_reviewer_singleton(
+    WORKSPACE_DIR=str(DATA_DIR / "workspace"),
+)
+
+# Create directories and files
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 if not LINTERS_JSON.exists():
     LINTERS_JSON.write_text("[]", encoding="utf-8")
-
+if not MULTIAGENT_JSON.exists():
+    MULTIAGENT_JSON.write_text("{}", encoding="utf-8")
 
 def _fmt_dt_for_title(value) -> str:
     # SQLite отдаёт ISO-строку вида "YYYY-MM-DD HH:MM:SS"
@@ -509,7 +518,6 @@ def llm_simulator(data):
         return {"issues": [], "meta": {"overall": "", "highlights": []}}
 
 
-
 def _find_latest_zip(username: Optional[str] = None) -> Optional[Path]:
     base = PROJECT_ROOT / UPLOAD_FOLDER
     if username:
@@ -550,6 +558,98 @@ def _run_linters_for_user(username: Optional[str]) -> dict:
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
+
+def _extract_repo_to_tmp_for_user(
+    username: Optional[str] = None,
+    limit: int = 100
+) -> Tuple[Path, Path, list[Path]]:
+    """
+    Распаковывает последний ZIP для пользователя, 
+    чистит от мусорных директорий и бинарников,
+    возвращает (tmp_dir, repo_dir, список исходников).
+    """
+    zip_path = _find_latest_zip(username=username)
+    if not zip_path:
+        raise FileNotFoundError("В uploads/ не найден zip для анализа мультиагентами")
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="ma_repo_"))
+    repo_dir = tmp_dir / "repo"
+    repo_dir.mkdir(parents=True, exist_ok=True)
+
+    bad_dirs = (
+        "__pycache__/", ".venv/", "venv/", "node_modules/", ".mypy_cache/",
+        ".pytest_cache/", ".git/", "dist/", "build/", "target/", "out/"
+    )
+    binary_exts = {
+        ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".exe", ".dll", ".so", ".dylib",
+        ".zip", ".tar", ".gz", ".rar", ".7z", ".mp4", ".mp3", ".woff", ".woff2",
+        ".otf", ".ttf"
+    }
+
+    with zipfile.ZipFile(zip_path, "r") as z:
+        for member in z.namelist():
+            if any(part in member for part in bad_dirs):
+                continue
+            z.extract(member, repo_dir)
+
+    # собрать список файлов
+    files: list[Path] = []
+    for p in repo_dir.rglob("*"):
+        if not p.is_file():
+            continue
+        if p.suffix.lower() in binary_exts:
+            continue
+        files.append(p)
+        if len(files) >= limit:
+            break
+
+    return tmp_dir, repo_dir, files
+
+def llm_analyze_repo_per_file(username: Optional[str], *, out_path: Path = MULTIAGENT_JSON,
+                          limit: int = 100, run_tests: bool = False) -> dict:
+    """
+    Анализирует репозиторий помодульно и пишет JSON:
+    [
+      {"file": "<rel path>", "result": <ReviewResults as dict>}, ...
+    ]
+    """
+
+    tmp_dir, repo_dir = _extract_repo_to_tmp_for_user(username, limit)
+    results: list[dict] = []
+    try:
+        for path in repo_dir:
+            # читаем как текст (без падений на странных кодировках)
+            try:
+                code_text = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+
+            # прогоняем файл
+            rel = path.relative_to(repo_dir).as_posix()
+            try:
+                review = REVIEWER.review_code(
+                    code=code_text,
+                    filename=path.name,
+                    run_tests=run_tests,
+                )
+                # сериализация pydantic / fallback
+                if hasattr(review, "model_dump"):
+                    payload = review.model_dump(exclude_none=True)
+                else:
+                    payload = json.loads(json.dumps(review, default=str))
+            except Exception as e:
+                payload = {"error": str(e)}
+
+            results.append({"file": rel, "result": payload})
+
+        # пишем JSON
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+
+        return {"success": True, "files": len(results), "output": str(out_path)}
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def llm_answer_to_html_simulator(
@@ -625,8 +725,6 @@ def llm_answer_to_html_simulator(
         shutil.rmtree(tempdir, ignore_errors=True)
 
 
-
-
 def process_review_async(project_id, project_data):
     """Process review asynchronously in a separate thread"""
 
@@ -638,8 +736,8 @@ def process_review_async(project_id, project_data):
         except Exception as e:
             print(f"[linters] warning: {e}")
 
-        # B) Потом — заглушка LLM
-        review_result = llm_simulator(project_data)
+        # B) Потом — LLM
+        review_result = llm_analyze_repo_per_file(project_data.get("username"))
 
         # C) Генерация HTML-отчёта пайплайном
         try:
@@ -678,9 +776,6 @@ def process_review_async(project_id, project_data):
     thread = threading.Thread(target=review_task)
     thread.daemon = True
     thread.start()
-
-
-
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

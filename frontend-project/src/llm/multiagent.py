@@ -2,19 +2,19 @@ import json
 import os
 import re
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import argparse
 import sys
 import time
 
-from config import Config
-from config import (
+from src.llm.config import Config
+from src.llm.config import (
     ArchitectureReviewResult,
     QualityReviewResult, 
     TesterResult,
     ReviewResults
 )
-from loggers import UnifiedLogger, TokenTracker
+from src.llm.loggers import UnifiedLogger, TokenTracker
 
 from pydantic import ValidationError
 from autogen import ConversableAgent, UserProxyAgent
@@ -530,15 +530,19 @@ class CodeReviewManager:
         cleaned = re.sub(pattern, "", o)
         return cleaned
 
-    
-
-    def review_code(self, code: str, filename: str = "student_code.py", run_tests: bool = True) -> ReviewResults:
+    def review_code(
+            self,
+            code: str,
+            filename: str = "student_code.py",
+            run_tests: bool = True,
+            repo_dir: Optional[str] = None,
+        ) -> ReviewResults:
         """Основной метод code review с улучшенной изоляцией агентов."""
         logger.info("Начало code review")
         self.logger.log_phase_start("Code Review", 1)
         
         # Save code
-        self._save_code(code, filename)
+        self._save_code(code, filename, repo_dir)
         
         # Initialize results
         results = ReviewResults(filename=filename)
@@ -550,7 +554,7 @@ class CodeReviewManager:
         Файл: {filename}
         
         КОД:
-        ```python
+        ```
         {code}
         ```
         
@@ -601,7 +605,7 @@ class CodeReviewManager:
                     raw_code = getattr(results.testing_results, "test_code", None)
                     if raw_code:
                         safe_code = self._sanitize_test_code(raw_code, filename)
-                        test_exec_results = self._run_tests(safe_code, filename)
+                        test_exec_results = self._run_tests(safe_code, filename, repo_dir)
                         results.test_execution = test_exec_results
                 
                 # Remove test code from results
@@ -611,62 +615,53 @@ class CodeReviewManager:
                 logger.error(f"Ошибка валидации testing review: {e}")
                 self.logger.log_error("Тестировщик", str(e))
         
-        # Save and output results
-        self._save_results(results)
-        self._print_summary(results)
-        
         # End session
         self.logger.log_session_end()
         self.token_tracker.log_session_summary()
         
         return results
-    def _save_code(self, code: str, filename: str) -> str:
-        """Сохранение кода."""
-        filepath = os.path.join(self.config.WORKSPACE_DIR, filename)
+    
+    def _save_code(self, code: str, filename: str, repo_dir: Optional[str] = None) -> str:
+        base_dir = repo_dir or self.config.WORKSPACE_DIR
+        filepath = os.path.join(base_dir, filename)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(code)
         logger.info(f"Код сохранен: {filepath}")
         return filepath
-    
-    def _run_tests(self, test_code: str, main_filename: str) -> Dict[str, Any]:
-        """Запуск тестов."""
-        test_filename = f"test_{main_filename}"
-        test_path = os.path.join(self.config.WORKSPACE_DIR, test_filename)
         
+    def _run_tests(self, test_code: str, main_filename: str, repo_dir: Optional[str] = None) -> Dict[str, Any]:
+        base_dir = repo_dir or self.config.WORKSPACE_DIR
+        tests_dir = os.path.join(base_dir, "tests")
+        os.makedirs(tests_dir, exist_ok=True)
+
+        test_filename = f"test_{main_filename}"
+        test_path = os.path.join(tests_dir, test_filename)
+
         with open(test_path, "w", encoding="utf-8") as f:
             f.write(test_code)
-        
+
         logger.info(f"Тесты сохранены: {test_path}")
-        
-        # Команда запуска
-        test_command = f"cd {self.config.WORKSPACE_DIR} && python -m pytest {test_filename} -v --tb=short"
-        
+
+        # Run pytest in project root so it picks up tests/
+        test_command = f"python -m pytest {test_path} -v --tb=short"
+
         try:
             exit_code, output = self.user_proxy.execute_code_blocks([("sh", test_command)])
-            
-            test_results = {
+            return {
                 "success": exit_code == 0,
                 "exit_code": exit_code,
                 "output": output,
-                "test_file": test_filename
+                "test_file": test_filename,
             }
-            
-            if exit_code == 0:
-                logger.info("Тесты пройдены успешно")
-                self.logger.log_success("Все тесты пройдены")
-            else:
-                logger.warning(f"Тесты провалены с кодом {exit_code}")
-                self.logger.log_error("Тесты", f"Провалены с кодом {exit_code}")
-            
-            return test_results
-            
         except Exception as e:
             logger.error(f"Ошибка при запуске тестов: {e}")
             return {"success": False, "error": str(e), "test_file": test_filename}
+
     
     def _save_results(self, results: ReviewResults):
         """Сохранение результатов."""
-        output_file = os.path.join(self.config.WORKSPACE_DIR, "review_results.json")
+        output_file = os.path.join(self.config.WORKSPACE_DIR, "multiagent.json")
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(results.model_dump(exclude_none=True), f, ensure_ascii=False, indent=2)
         logger.info(f"Результаты сохранены: {output_file}")
@@ -729,6 +724,31 @@ class CodeReviewManager:
                         self.logger.log_error("Runner", f"Тест упал: {msg}")
 
         self.logger.log_session_end()
+
+# вверху файла после импорта Config и CodeReviewManager
+from typing import Optional
+
+_REVIEWER_SINGLETON: Optional["CodeReviewManager"] = None
+
+def init_reviewer(config: Optional["Config"] = None, **overrides) -> "CodeReviewManager":
+    """
+    Инициализирует CodeReviewManager.
+    Параметры из overrides (например, WORKSPACE_DIR, ENABLE_TEST_EXECUTION, USE_DOCKER)
+    применяются к Config, если такие поля существуют.
+    """
+    cfg = config or Config()
+    for key, value in overrides.items():
+        if hasattr(cfg, key):
+            setattr(cfg, key, value)
+    return CodeReviewManager(cfg)
+
+def get_reviewer_singleton(config: Optional["Config"] = None, **overrides) -> "CodeReviewManager":
+    """Ленивая выдача одного инстанса на процесс (удобно для Flask)."""
+    global _REVIEWER_SINGLETON
+    if _REVIEWER_SINGLETON is None:
+        _REVIEWER_SINGLETON = init_reviewer(config, **overrides)
+    return _REVIEWER_SINGLETON
+
 
 if __name__ == "__main__":
 
