@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv('./env')
 API_KEY = os.getenv("API_KEY", None)
 FOLDER_ID = os.getenv("FOLDER_ID", None)
 
@@ -26,7 +26,7 @@ class Config(BaseSettings):
 
     # Настройки Docker
     USE_DOCKER: bool = False
-    DOCKER_IMAGE: str | None = None
+    DOCKER_IMAGE: str  = ''
 
     # Стоимость токенов
     TOKEN_INPUT_COST: float = 0.0

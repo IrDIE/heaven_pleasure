@@ -11,7 +11,7 @@ from pathlib import Path
 import glob, tempfile, shutil, sys
 from typing import Optional
 
-debug_local = False
+debug_local = True
 
 # --- подключаем твой пайплайн как модули ---
 PIPELINE_DIR = Path(__file__).parent / "pipeline"
@@ -124,6 +124,7 @@ def init_db_users():
                   last_login TIMESTAMP)''')
     conn.commit()
     conn.close()
+    print("\n\n -->>>> Database USER initialized.")
 
 # Initialize the database
 init_db_users()
@@ -961,9 +962,10 @@ def llm_answer_to_html_simulator(
                                   overall=overall, highlights=highlights)
 
         # 9) Сохраняем
-        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        reports_d = REPORTS_DIR / username
+        reports_d.mkdir(parents=True, exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        out = REPORTS_DIR / f"review_{project_id or 'latest'}_{ts}.html"
+        out = reports_d / f"review_{project_id or 'latest'}_{ts}.html"
 
         out.write_text(html_text, encoding="utf-8")
         print(f"[PIPE] saved: {out}")
