@@ -583,7 +583,7 @@ def _extract_repo_to_tmp_for_user(
     binary_exts = {
         ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".exe", ".dll", ".so", ".dylib",
         ".zip", ".tar", ".gz", ".rar", ".7z", ".mp4", ".mp3", ".woff", ".woff2",
-        ".otf", ".ttf"
+        ".otf", ".ttf", ".svg", ".yaml"
     }
 
     with zipfile.ZipFile(zip_path, "r") as z:
@@ -605,51 +605,154 @@ def _extract_repo_to_tmp_for_user(
 
     return tmp_dir, repo_dir, files
 
-def llm_analyze_repo_per_file(username: Optional[str], *, out_path: Path = MULTIAGENT_JSON,
-                          limit: int = 100, run_tests: bool = False) -> dict:
+def llm_analyze_repo_per_file(
+    username: Optional[str],
+    *,
+    out_path: Path = MULTIAGENT_JSON,
+    limit: int = 100,
+    run_tests: bool = False
+) -> dict:
     """
-    Анализирует репозиторий помодульно и пишет JSON:
-    [
-      {"file": "<rel path>", "result": <ReviewResults as dict>}, ...
-    ]
+    Гоняет REVIEWER по файлам, агрегирует результаты в ОДИН общий dict 'autoreview'
+    и пишет его в out_path.
     """
-
-    tmp_dir, repo_dir = _extract_repo_to_tmp_for_user(username, limit)
-    results: list[dict] = []
+    # имя архива (для поля archive)
     try:
-        for path in repo_dir:
-            # читаем как текст (без падений на странных кодировках)
+        z = _find_latest_zip(username=username)
+        archive_name = z.name if z else None
+    except Exception:
+        archive_name = None
+
+    tmp_dir, repo_dir, files = _extract_repo_to_tmp_for_user(username, limit)
+
+    # хелперы
+    def top_level_dir(relpath: str) -> Optional[str]:
+        parts = relpath.split("/")
+        return parts[0] if parts and len(parts) > 1 else None
+
+    def dedup_seq(seq, key):
+        seen = set(); out = []
+        for x in seq or []:
+            k = key(x)
+            if k in seen: 
+                continue
+            seen.add(k); out.append(x)
+        return out
+
+    agg_positives: list[dict] = []
+    agg_issues: list[dict] = []
+    agg_highlights: list[str] = []
+    overall_parts: list[str] = []
+    roots: list[str] = []
+
+    try:
+        for path in files:
+            rel = path.relative_to(repo_dir).as_posix()
+            root = top_level_dir(rel)
+            if root:
+                roots.append(root)
+
+            # читаем текст
             try:
                 code_text = path.read_text(encoding="utf-8", errors="ignore")
-            except Exception:
+            except Exception as e:
+                # добавим мягкое сообщение в overall
+                overall_parts.append(f"Не удалось прочитать {rel}: {e}")
                 continue
 
-            # прогоняем файл
-            rel = path.relative_to(repo_dir).as_posix()
+            # ревью
             try:
                 review = REVIEWER.review_code(
                     code=code_text,
                     filename=path.name,
                     run_tests=run_tests,
                 )
-                # сериализация pydantic / fallback
-                if hasattr(review, "model_dump"):
-                    payload = review.model_dump(exclude_none=True)
-                else:
-                    payload = json.loads(json.dumps(review, default=str))
+                payload = review if isinstance(review, dict) else json.loads(json.dumps(review, default=str))
             except Exception as e:
-                payload = {"error": str(e)}
+                overall_parts.append(f"Ошибка review для {rel}: {e}")
+                continue
 
-            results.append({"file": rel, "result": payload})
+            # собираем
+            if payload.get("overall"):
+                overall_parts.append(str(payload["overall"]).strip())
 
-        # пишем JSON
+            # highlights
+            hl = (((payload.get("summary") or {}).get("highlights")) or [])
+            agg_highlights.extend([str(h).strip() for h in hl if h])
+
+            # positives / issues
+            agg_positives.extend(payload.get("positives") or [])
+            agg_issues.extend(payload.get("issues") or [])
+
+        # root: самый частый верхний каталог
+        root_value = None
+        if roots:
+            from collections import Counter
+            root_value = Counter(roots).most_common(1)[0][0]
+
+        # дедупликации
+        agg_highlights = dedup_seq(agg_highlights, key=lambda s: s)[:10]
+        agg_positives = dedup_seq(
+            agg_positives,
+            key=lambda x: (x.get("file"), x.get("line"), x.get("message"))
+        )
+        agg_issues = dedup_seq(
+            agg_issues,
+            key=lambda x: (x.get("id"), x.get("file"), x.get("line"), x.get("message"))
+        )
+
+        # подсчёт major/minor (critical считаем как major)
+        major = minor = 0
+        for it in agg_issues:
+            sev = (it.get("severity") or "").lower()
+            if sev in ("critical", "major"):
+                major += 1
+            else:
+                minor += 1
+
+        overall_text = " | ".join(dedup_seq(
+            [p for p in (s.strip() for s in overall_parts) if p],
+            key=lambda s: s
+        ))
+
+        # финальный единственный объект
+        final_payload = {
+            "agent": "autoreview",
+            "role": "reviewer",
+            "name": "AutoReview",
+            "archive": archive_name,
+            "root": root_value,
+            "summary": {
+                "issue_counts": {"major": major, "minor": minor},
+                "highlights": agg_highlights
+            },
+            "overall": overall_text,
+            "positives": agg_positives,
+            "issues": agg_issues
+        }
+
+        # запись ОДНОГО dict
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
+            json.dump(final_payload, f, ensure_ascii=False, indent=2)
 
-        return {"success": True, "files": len(results), "output": str(out_path)}
+        return {"success": True, "files": len(files), "output": str(out_path)}
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+        # чистим workspace, сохраняя .log
+        try:
+            workspace_dir = DATA_DIR / "workspace"
+            if workspace_dir.exists():
+                for p in workspace_dir.iterdir():
+                    try:
+                        if p.is_dir():
+                            shutil.rmtree(p, ignore_errors=True)
+                        elif p.is_file() and p.suffix != ".log":
+                            p.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
 
 def llm_answer_to_html_simulator(
@@ -669,7 +772,8 @@ def llm_answer_to_html_simulator(
         project_root = pcommon.detect_project_root(base, (answer or {}).get("root", ""))
 
         # 1) LLM-issues → добавляем сниппеты
-        review_llm = bs.process(answer, project_root, context=SNIPPET_CONTEXT)
+        llm_raw = json.loads((MULTIAGENT_JSON).read_text(encoding="utf-8")) if MULTIAGENT_JSON.exists() else {}
+        review_llm = bs.process(llm_raw, project_root, context=SNIPPET_CONTEXT)
 
         # 2) Linters → читаем, нормализуем и тоже добавляем сниппеты
         linters_raw = json.loads((LINTERS_JSON).read_text(encoding="utf-8")) if LINTERS_JSON.exists() else []

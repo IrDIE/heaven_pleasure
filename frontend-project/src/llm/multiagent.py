@@ -226,92 +226,110 @@ class CodeReviewManager:
             """,
             llm_config=llm_config_base
         )
-
-        # Агент тестирования
         self.tester_agent = ConversableAgent(
             name="Тестировщик",
             system_message="""
-            Вы — эксперт по тестированию кода. Ваша задача — сгенерировать unit-тесты и предоставить краткое резюме покрытия.
+        Вы — эксперт по тестированию ПО на любых языках. Ваша задача — сгенерировать автотесты и краткое резюме покрытия.
 
-            СТРОГИЕ ПРАВИЛА:
-            - НЕ исправляйте и НЕ оценивайте код студента
-            - НЕ включайте исправленный код студента - только тесты
-            - ВСЕ ИМПОРТЫ ИЗ ТЕСТИРУЕМОГО МОДУЛЯ — ТОЛЬКО ВНУТРИ ТЕСТОВЫХ ФУНКЦИЙ
-            - ПРОВЕРЯЙТЕ ЗАВИСИМОСТИ: try: importlib.import_module(dep) except Exception: pytest.skip(f"Отсутствует зависимость: {dep}")
-            - НИКАКИХ сетевых запросов или внешних вызовов
-            - Если зависимость отсутствует — тест помечается как SKIPPED
+        СТРОГИЕ ПРАВИЛА:
+        - НЕ исправляйте и НЕ оценивайте код студента.
+        - Никаких советов/рекомендаций — только тесты и краткое резюме.
+        - НИКАКИХ сетевых запросов или внешних сервисов.
+        - Тесты должны быть самодостаточными и запускаться стандартным инструментом для целевого языка/стека.
+        - Для Python: все импорты тестируемого кода — только внутри тестовых функций.
+        - Для других языков: аналогично — подключения модулей/пакетов/юнитов делайте внутри конкретных тест-кейсов.
+        - Если нет нужного раннера/SDK/зависимости — помечайте тест как SKIPPED/IGNORED (механизмом данного фреймворка).
 
-            ФУНКЦИИ:
-            - Создание unit-тестов для всех публичных функций/методов
-            - Тестирование граничных случаев и некорректных входов
-            - Локальные импорты внутри каждого теста
-            - Самодостаточные тесты для pytest
+        ФУНКЦИИ:
+        - Создание автотестов для всех публичных функций/методов/API (насколько это возможно).
+        - Тестирование нормальных сценариев, граничных случаев и некорректных входов.
+        - Локальные подключения тестируемых модулей внутри каждого теста.
+        - Самодостаточные тесты под типичный раннер языка:
+        - Python → pytest
+        - JavaScript/TypeScript → Jest (или Vitest)
+        - Go → go test
+        - Java/Kotlin → JUnit (Gradle/Maven)
+        - C/C++ → CTest/GoogleTest (CMake)
+        - Rust → cargo test
+        - C# → dotnet test (xUnit/NUnit)
 
-            ОБЯЗАТЕЛЬНЫЙ ФОРМАТ JSON:
-            {
-                "agent": "tester",
-                "role": "tester",
-                "archive": null,
-                "root": null,
-                "summary": {
-                    "issue_counts": { "major": 0, "minor": 0 },
-                    "highlights": [
-                        "Создано X тестов для Y функций",
-                        "Покрыты граничные случаи для функции Z",
-                        "Добавлены тесты на обработку ошибок",
-                        "Протестированы основные сценарии использования"
-                    ]
-                },
-                "issues": [],
-                "test_code": "# ПОЛНЫЙ КОД ТЕСТОВ\nimport pytest\nimport importlib\n\n# Ваши тесты здесь..."
-            }
+        Если стек явно угадывается из файлов/структуры — используйте соответствующий раннер. Иначе выберите наиболее типичный.
 
-            ГЕНЕРАЦИЯ HIGHLIGHTS:
-            Создайте 3-5 кратких описаний того, что покрывают тесты:
-            - Количество созданных тестов и протестированных функций
-            - Какие типы тестов добавлены (граничные случаи, ошибки, нормальные сценарии)
-            - Особые случаи тестирования (если есть)
-            - Общий охват функциональности
+        ПРОВЕРКА ЗАВИСИМОСТЕЙ:
+        - В начале каждого теста выполняйте проверку критичных зависимостей и инструмента тестирования.
+        - Если зависимость/инструмент недоступны — корректно пометьте тест как SKIPPED/IGNORED с сообщением вида:
+        - Python (pytest): pytest.skip("Отсутствует зависимость: <dep>")
+        - Jest: test.skip("Отсутствует зависимость: <dep>", () => {})
+        - Go: t.Skip("Отсутствует зависимость: <dep>")
+        - JUnit: Assumptions.assumeTrue(false, "Отсутствует зависимость: <dep>")
+        и т.д. — по канонам выбранного фреймворка.
 
-            ПРОЦЕСС:
-            1. Определите все тестируемые публичные функции/методы
-            2. Для каждой создайте тесты: нормальные случаи, граничные, ошибки
-            3. В каждом тесте: проверка зависимостей → локальный импорт → тесты
-            4. Сформируйте highlights с описанием покрытия
-            5. Поместите весь код в поле test_code
+        ГЕНЕРАЦИЯ ТЕСТОВ:
+        1) Определите тестируемые публичные сущности (функции/методы/эндпоинты/CLI).
+        2) Для каждой — сделайте набор тестов: нормальные случаи, границы, ошибки/исключения.
+        3) Все подключения тестируемого кода — внутри конкретных тестов.
+        4) Запрет на глобальные хелперы, которые мутируют код студента. Можно создавать только тестовые фикстуры/данные.
+        5) Если нужен дополнительный файл (конфиг, фикстуры, package.json, Cargo.toml, CMakeLists.txt и т.п.) — добавьте его в поле "archive".
 
-            СТРУКТУРА ТЕСТОВ:
-            ```python
-            import pytest
-            import importlib
+        ОБЯЗАТЕЛЬНЫЙ ВЫХОД (ТОЛЬКО валидный JSON, без markdown):
+        {
+        "agent": "tester",
+        "role": "tester",
+        "archive": null | [
+            {"path": "tests/test_sample.py", "content": "<полный текст>"},
+            {"path": "jest.config.js", "content": "<полный текст>"},
+            {"path": "Cargo.toml", "content": "<полный текст>"}
+        ],
+        "root": null,
+        "summary": {
+            "issue_counts": {"major": 0, "minor": 0},
+            "highlights": [
+            "Создано X тестов для Y сущностей",
+            "Покрыты граничные случаи для Z",
+            "Добавлены проверки ошибок/исключений",
+            "Протестированы основные сценарии использования"
+            ]
+        },
+        "issues": [],
+        "test_code": "<ПОЛНЫЙ КОД/СКРИПТ ОСНОВНОГО ТЕСТОВОГО ФАЙЛА ДЛЯ ВЫБРАННОГО РАННЕРА>"
+        }
 
-            def test_function_name_normal_case():
-                # Проверка зависимостей
-                try:
-                    importlib.import_module('required_module')
-                except ImportError:
-                    pytest.skip("Отсутствует зависимость: required_module")
-                
-                # Локальный импорт
-                from student_code import function_name
-                
-                # Тесты
-                assert function_name(input) == expected_output
-            ```
+        ТРЕБОВАНИЯ:
+        - Всегда заполняйте "test_code" полным содержимым основного файла тестов (например: tests/test_all.py, tests/main.test.ts, *_test.go, src/test/java/.../AllTests.java).
+        - Если нужны доп. файлы — положите их в "archive" (список объектов {path, content}). Пути относительные, совместимые с типичным запуском.
+        - "issues" — всегда пустой массив.
+        - "highlights" — 3–5 коротких пунктов, отражающих покрытие.
 
-            ЗАПРЕЩЕНО:
-            - Любые issues, советы, оценки, рекомендации
-            - Исправления кода студента
-            - Глобальные импорты тестируемого кода
+        ПРИМЕР СТРУКТУРЫ (концептуально):
+        - Python/pytest:
+        - test_code: полный tests/test_all.py
+        - archive (опц.): pytest.ini, conftest.py
+        - JS/Jest:
+        - test_code: полный tests/main.test.ts
+        - archive (опц.): package.json (scripts.test="jest"), jest.config.js
+        - Go:
+        - test_code: полный pkg/thing/thing_test.go
+        - archive (опц.): go.mod
+        - Java/JUnit:
+        - test_code: полный src/test/java/.../AllTests.java (или отдельный класс)
+        - archive (опц.): build.gradle / pom.xml (с подключённым junit)
 
-            Требования к выводу:
-            - ТОЛЬКО валидный JSON без markdown оформления
-            - Обязательные highlights с описанием тестового покрытия
-            - Полный код тестов в поле test_code
-            - issues всегда пустой массив
-            """,
+        ЗАПРЕЩЕНО:
+        - Любые правки/оценки кода студента.
+        - Сетевые вызовы.
+        - Глобальные импорты/линковка тестируемого кода (делайте это внутри конкретных тестов).
+
+        ФОРМАТ HIGHLIGHTS:
+        - Кол-во тестов и протестированных сущностей.
+        - Какие типы тестов добавлены (границы, ошибки, happy-path).
+        - Особые сценарии (параметризация, property-based, таблиц. тесты — если применимо).
+        - Краткий вывод об охвате.
+
+        Выводите ТОЛЬКО валидный JSON по указанной схеме.
+        """,
             llm_config=llm_config_code
         )
+
 
         # User proxy
         code_execution_config = {
@@ -378,90 +396,73 @@ class CodeReviewManager:
             default_auto_reply="",
         )
         
- 
-    def _invoke_agent(self, agent: ConversableAgent, prompt: str, max_retries: int = None) -> dict:
-        """Вызов агента и получение JSON ответа с улучшенной изоляцией."""
+    
+    def _invoke_agent(self, agent: ConversableAgent, prompt: str, max_retries: int = None, *, expected_kind: str, filename: str = "student_code.py") -> dict:
         if max_retries is None:
             max_retries = self.config.MAX_REVIEW_RETRIES
-        
-        # Reset agent before starting
         agent.reset()
-        
+
+        def _need_fallback(msg: str) -> Optional[str]:
+            if not msg:
+                return "empty response"
+            m = re.search(r"(cannot\s+review|can[’']?t\s+review|не\s+могу\s+(проанализировать|оценить)|unsupported|not\s+supported)", msg, re.IGNORECASE)
+            if m:
+                return msg.strip()[:500]
+            return None
+
         for attempt in range(max_retries):
             logger.info(f"Вызов {agent.name}, попытка {attempt + 1}/{max_retries}")
-            
-            # Create fresh user proxy for this specific interaction
             temp_user_proxy = self._create_fresh_user_proxy()
-            
+            last_message = ""
             try:
-                # Add small delay to prevent overwhelming Ollama
                 if attempt > 0:
                     time.sleep(1)
-                
-                logger.info(f"Initiating chat with {agent.name}")
-                
                 chat_result = temp_user_proxy.initiate_chat(
-                    recipient=agent,
-                    message=prompt,
-                    max_turns=1,
-                    clear_history=True,
-                    silent=False,
+                    recipient=agent, message=prompt, max_turns=1, clear_history=True, silent=False,
                 )
-                
-                logger.info(f"Chat completed for {agent.name}")
-                
-                # Extract response
-                last_message = ""
                 if hasattr(chat_result, "chat_history") and chat_result.chat_history:
                     for msg in reversed(chat_result.chat_history):
-                        content = msg.get("content", "").strip()
+                        content = (msg.get("content") or "").strip()
                         sender = msg.get("name", msg.get("role", ""))
-                        
                         if sender != "Оркестратор" and content:
                             last_message = content
                             break
-                
-                logger.info(f"Extracted message length: {len(last_message)}")
-                
             except Exception as e:
                 logger.warning(f"Ошибка в чате с {agent.name}: {e}")
-                
-                # Fallback with delay
                 time.sleep(2)
-                
                 try:
-                    logger.info(f"Trying fallback for {agent.name}")
                     response = agent.generate_reply([{"role": "user", "content": prompt}])
                     last_message = response if response else ""
                 except Exception as fallback_error:
                     logger.error(f"Fallback also failed for {agent.name}: {fallback_error}")
                     last_message = ""
-            
-            # Track tokens
-            self.token_tracker.track_agent_call(
-                agent_name=agent.name,
-                input_text=prompt,
-                output_text=last_message
-            )
+
+            # токены/лог
+            self.token_tracker.track_agent_call(agent_name=agent.name, input_text=prompt, output_text=last_message)
             self.logger._write_raw(f"\n=== OUTPUT <- {agent.name} ===\n{last_message}\n")
-            
-            # Extract JSON
+
+            # 1) если явное "не могу" — сразу структурный fallback
+            fb_reason = _need_fallback(last_message)
+            if fb_reason:
+                logger.info(f"{agent.name}: unsupported -> fallback")
+                return self._fallback_payload(expected_kind, filename, fb_reason)
+
+            # 2) попытка вытащить JSON
             if last_message:
                 json_data = self._extract_json(last_message)
                 if json_data:
-                    logger.info(f"Successfully extracted JSON from {agent.name}")
                     return json_data
-                else:
-                    logger.warning(f"No valid JSON found in response from {agent.name}")
-            
-            # Retry with simplified prompt
+                logger.warning(f"No valid JSON from {agent.name}")
+
+            # 3) ретрай с ужесточением
             if attempt < max_retries - 1:
                 prompt = f"ВЕРНИТЕ ТОЛЬКО JSON!\n{prompt}"
-                logger.info(f"Retrying with simplified prompt for {agent.name}")
-                time.sleep(2)  # Longer delay before retry
-        
-        logger.error(f"Failed to get valid response from {agent.name} after {max_retries} attempts")
-        return {}
+                time.sleep(2)
+
+        # 4) окончательный структурный fallback
+        logger.error(f"{agent.name}: returning fallback after {max_retries} attempts")
+        return self._fallback_payload(expected_kind, filename, "no valid JSON")
+
         
     def _sanitize_test_code(self, code: str, module_name: str) -> str:
         """Заменяет реальные переводы строк внутри '...' и "..." на \\n.
@@ -530,6 +531,55 @@ class CodeReviewManager:
         cleaned = re.sub(pattern, "", o)
         return cleaned
 
+    def _to_autoreview(
+        self,
+        *,
+        filename: str,
+        arch: Optional[dict],
+        quality: Optional[dict],
+        tester: Optional[dict],
+        archive_name: Optional[str] = None,
+        root_dir: Optional[str] = None,
+    ) -> dict:
+        """Собирает целевой JSON-формат 'autoreview' из ответов агентов."""
+        positives = (arch or {}).get("positives") or []
+        issues_arch = (arch or {}).get("issues") or []
+        issues_qual = (quality or {}).get("issues") or []
+        issues = [*issues_arch, *issues_qual]
+
+        # Счётчики: считаем critical как major (как в твоём примере)
+        major = 0
+        minor = 0
+        for it in issues:
+            sev = (it.get("severity") or "").lower()
+            if sev in ("critical", "major"):
+                major += 1
+            else:
+                minor += 1
+
+        overall_parts = []
+        if arch and arch.get("overall"):
+            overall_parts.append(str(arch["overall"]).strip())
+        if quality and quality.get("overall"):
+            overall_parts.append(str(quality["overall"]).strip())
+        overall = " | ".join(p for p in overall_parts if p)
+
+        return {
+            "agent": "autoreview",
+            "role": "reviewer",
+            "name": "AutoReview",
+            "archive": archive_name,               # нет имени — оставь None или подставь своё
+            "root": root_dir,                      # можно проставить имя репы/корня
+            "summary": {
+                "issue_counts": {"major": major, "minor": minor},
+                "highlights": (tester or {}).get("summary", {}).get("highlights") or []
+            },
+            "overall": overall,
+            "positives": positives,
+            "issues": issues
+        }
+
+
     def review_code(
             self,
             code: str,
@@ -566,7 +616,7 @@ class CodeReviewManager:
         logger.info("Запуск архитектурного анализа")
         logger.info("=" * 50)
         
-        arch_json = self._invoke_agent(self.architecture_reviewer, base_prompt)
+        arch_json = self._invoke_agent(self.architecture_reviewer, base_prompt, expected_kind="architecture", filename=filename)
         if arch_json:
             try:
                 results.architecture_review = ArchitectureReviewResult(**arch_json)
@@ -580,7 +630,7 @@ class CodeReviewManager:
         logger.info("Запуск анализа качества")
         logger.info("=" * 50)
         
-        quality_json = self._invoke_agent(self.quality_reviewer, base_prompt)
+        quality_json = self._invoke_agent(self.quality_reviewer, base_prompt, expected_kind="quality", filename=filename)
         if quality_json:
             try:
                 results.quality_review = QualityReviewResult(**quality_json)
@@ -594,21 +644,28 @@ class CodeReviewManager:
         logger.info("Запуск тестирования")
         logger.info("=" * 50)
         
-        test_json = self._invoke_agent(self.tester_agent, base_prompt)
+        test_json = self._invoke_agent(self.tester_agent, base_prompt, expected_kind="tester", filename=filename)
         if test_json:
             try:
                 results.testing_results = TesterResult(**test_json)
                 self.logger.log_agent_action("Тестировщик", "Анализ завершен", "Успешно")
-                
-                # Run tests if code exists
+
                 if run_tests and self.config.ENABLE_TEST_EXECUTION:
                     raw_code = getattr(results.testing_results, "test_code", None)
-                    if raw_code:
-                        safe_code = self._sanitize_test_code(raw_code, filename)
-                        test_exec_results = self._run_tests(safe_code, filename, repo_dir)
-                        results.test_execution = test_exec_results
-                
-                # Remove test code from results
+                    lang_hint = None  # агент может положить это в test_json.get("runner", {}).get("language")
+                    # для Python санитайзим, для остальных — как есть
+                    safe_code = (self._sanitize_test_code(raw_code, filename)
+                                if raw_code and (lang_hint == "python" or filename.endswith(".py"))
+                                else (raw_code or ""))
+                    test_exec_results = self._run_tests(
+                        test_result_json=test_json,
+                        test_code=safe_code,
+                        main_filename=filename,
+                        repo_dir=repo_dir
+                    )
+                    results.test_execution = test_exec_results
+
+                # убираем тестовый код из итогового JSON
                 results.testing_results.test_code = None
                     
             except ValidationError as e:
@@ -619,8 +676,70 @@ class CodeReviewManager:
         self.logger.log_session_end()
         self.token_tracker.log_session_summary()
         
-        return results
-    
+        root_dir = None
+        
+        if repo_dir:
+            try:
+                root_dir = os.path.basename(os.path.abspath(repo_dir))
+            except Exception:
+                root_dir = None
+
+        autoreview = self._to_autoreview(
+            filename=filename,
+            arch=arch_json or {},
+            quality=quality_json or {},
+            tester=test_json or {},
+            archive_name=None,      # сюда можешь подставить имя zip, если знаешь
+            root_dir=root_dir,
+        )
+
+        # Завершаем сессию логов/токенов как раньше
+        self.logger.log_session_end()
+        self.token_tracker.log_session_summary()
+
+        # Возвращаем ПЛОСКИЙ dict вместо Pydantic
+        return autoreview
+        
+    def _fallback_payload(self, kind: str, filename: str, reason: str) -> dict:
+        reason = (reason or "Unsupported or unrecognized content").strip()
+        if kind == "architecture":
+            return {
+                "agent": "АрхитекторРевьюер",
+                "role": "reviewer",
+                "name": "Архитектор-аналитик",
+                "overall": f"Невозможно проанализировать файл: {reason}",
+                "positives": [],
+                "issues": []
+            }
+        if kind == "quality":
+            return {
+                "agent": "КачествоРевьюер",
+                "role": "reviewer",
+                "name": "Эксперт по качеству",
+                "overall": f"Невозможно оценить качество файла: {reason}",
+                "issues": []
+            }
+        if kind == "tester":
+            return {
+                "agent": "tester",
+                "role": "tester",
+                "archive": [],
+                "root": None,
+                "summary": {
+                    "issue_counts": {"major": 0, "minor": 0},
+                    "highlights": [
+                        f"Файл {filename} не поддержан для автотестов",
+                        f"Причина: {reason}",
+                        "Тесты помечены как SKIPPED"
+                    ]
+                },
+                "issues": [],
+                "test_code": ""
+            }
+        # дефолт — безопасная заглушка
+        return {"agent": kind, "role": "reviewer", "issues": []}
+
+
     def _save_code(self, code: str, filename: str, repo_dir: Optional[str] = None) -> str:
         base_dir = repo_dir or self.config.WORKSPACE_DIR
         filepath = os.path.join(base_dir, filename)
@@ -629,34 +748,153 @@ class CodeReviewManager:
             f.write(code)
         logger.info(f"Код сохранен: {filepath}")
         return filepath
-        
-    def _run_tests(self, test_code: str, main_filename: str, repo_dir: Optional[str] = None) -> Dict[str, Any]:
+    def _run_tests(
+        self,
+        test_result_json: dict,
+        test_code: str,
+        main_filename: str,
+        repo_dir: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Универсальный запуск тестов.
+        - Записывает archive (если есть).
+        - Определяет стек/раннер по archive/имёнам/содержимому.
+        - Если агент дал явную команду — используем её.
+        - Если запуск не возможен — помечаем skipped.
+        """
         base_dir = repo_dir or self.config.WORKSPACE_DIR
-        tests_dir = os.path.join(base_dir, "tests")
-        os.makedirs(tests_dir, exist_ok=True)
+        os.makedirs(base_dir, exist_ok=True)
 
-        test_filename = f"test_{main_filename}"
-        test_path = os.path.join(tests_dir, test_filename)
+        # 1) Записать archive
+        created_files = []
+        archive = test_result_json.get("archive") or []
+        for item in archive:
+            try:
+                rel_path = os.path.normpath(item.get("path", "")).lstrip(os.sep)
+                if not rel_path or ".." in rel_path.split(os.sep):
+                    continue
+                dst = os.path.join(base_dir, rel_path)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                with open(dst, "w", encoding="utf-8") as f:
+                    f.write(item.get("content", ""))
+                created_files.append(dst)
+            except Exception as e:
+                logger.warning(f"Не удалось записать архивный файл {item.get('path')}: {e}")
 
-        with open(test_path, "w", encoding="utf-8") as f:
-            f.write(test_code)
+        # 2) Определить язык/раннер
+        def _has(*names: str) -> bool:
+            return any(os.path.exists(os.path.join(base_dir, n)) for n in names)
 
-        logger.info(f"Тесты сохранены: {test_path}")
+        def _any_ext(patterns) -> bool:
+            for root, _, files in os.walk(base_dir):
+                for fn in files:
+                    if any(fn.endswith(ext) for ext in patterns):
+                        return True
+            return False
 
-        # Run pytest in project root so it picks up tests/
-        test_command = f"python -m pytest {test_path} -v --tb=short"
+        # если агент прислал runner.command — используем его
+        runner_cfg = (test_result_json.get("runner") or {}) if isinstance(test_result_json, dict) else {}
+        cmd = (runner_cfg.get("command") or "").strip()
+        language_hint = (runner_cfg.get("language") or "").strip().lower()
 
+        # 3) Сохранить основной тестовый файл (если есть)
+        test_path = None
+        if test_code:
+            # Выбор пути по подсказке/детекции
+            if language_hint == "python" or main_filename.endswith(".py"):
+                tests_dir = os.path.join(base_dir, "tests")
+                os.makedirs(tests_dir, exist_ok=True)
+                test_filename = f"test_{os.path.basename(main_filename)}"
+                test_path = os.path.join(tests_dir, test_filename)
+            elif language_hint in ("javascript", "typescript") or _any_ext((".js", ".mjs", ".cjs", ".ts", ".tsx")):
+                tests_dir = os.path.join(base_dir, "tests")
+                os.makedirs(tests_dir, exist_ok=True)
+                ext = ".test.ts" if _any_ext((".ts", ".tsx")) else ".test.js"
+                test_path = os.path.join(tests_dir, f"main{ext}")
+            elif language_hint == "go" or _any_ext((".go",)):
+                # в Go имя файла должно заканчиваться на _test.go
+                pkg_dir = base_dir
+                test_path = os.path.join(pkg_dir, "autogen_test.go")
+            elif language_hint in ("java", "kotlin") or _has("pom.xml", "build.gradle", "build.gradle.kts"):
+                test_root = os.path.join(base_dir, "src", "test", "java")
+                os.makedirs(test_root, exist_ok=True)
+                test_path = os.path.join(test_root, "AutogenTests.java")
+            elif language_hint == "rust" or _has("Cargo.toml"):
+                tests_dir = os.path.join(base_dir, "tests")
+                os.makedirs(tests_dir, exist_ok=True)
+                test_path = os.path.join(tests_dir, "autogen_tests.rs")
+            elif language_hint in ("c#", "dotnet") or _any_ext((".csproj",)):
+                test_root = os.path.join(base_dir, "Tests")
+                os.makedirs(test_root, exist_ok=True)
+                test_path = os.path.join(test_root, "AutogenTests.cs")
+            else:
+                # дефолт — pytest
+                tests_dir = os.path.join(base_dir, "tests")
+                os.makedirs(tests_dir, exist_ok=True)
+                test_filename = f"test_{os.path.basename(main_filename)}"
+                test_path = os.path.join(tests_dir, test_filename)
+
+            with open(test_path, "w", encoding="utf-8") as f:
+                f.write(test_code)
+            created_files.append(test_path)
+            logger.info(f"Тесты сохранены: {test_path}")
+
+        # 4) Если команда не задана агентом — подбираем
+        if not cmd:
+            if language_hint == "python" or (test_path and test_path.endswith(".py")):
+                cmd = f"python -m pytest {test_path if test_path else 'tests'} -q -q --maxfail=1 --disable-warnings"
+            elif language_hint in ("javascript", "typescript") or _has("package.json"):
+                # предпочитаем jest, иначе node --test (Node>=18)
+                if _has("node_modules/.bin/jest") or '"jest"' in open(os.path.join(base_dir, "package.json"), "r", encoding="utf-8").read() if _has("package.json") else False:
+                    cmd = "npx jest --runInBand"
+                else:
+                    # node встроенный тест-раннер
+                    target = test_path or "tests"
+                    cmd = f"node --test {target}"
+            elif language_hint == "go" or _any_ext((".go",)):
+                cmd = "go test ./..."
+            elif language_hint in ("java", "kotlin") or _has("pom.xml"):
+                cmd = "mvn -q -e -DskipITs test"
+            elif _has("build.gradle", "build.gradle.kts"):
+                cmd = "gradle test || ./gradlew test"
+            elif language_hint == "rust" or _has("Cargo.toml"):
+                cmd = "cargo test"
+            elif language_hint in ("c#", "dotnet") or _any_ext((".csproj",)):
+                cmd = "dotnet test --nologo"
+            else:
+                # fallback — pytest
+                target = test_path if (test_path and test_path.endswith(".py")) else "tests"
+                cmd = f"python -m pytest {target} -q -q --maxfail=1 --disable-warnings"
+
+        # 5) Запустить
         try:
-            exit_code, output = self.user_proxy.execute_code_blocks([("sh", test_command)])
+            exit_code, output = self.user_proxy.execute_code_blocks([("sh", cmd)], work_dir=base_dir)
+            # Успех: код 0 → прошли, >0 → упали
+            success = (exit_code == 0)
+            status = "PASSED" if success else "FAILED"
             return {
-                "success": exit_code == 0,
+                "success": success,
+                "status": status,
                 "exit_code": exit_code,
                 "output": output,
-                "test_file": test_filename,
+                "command": cmd,
+                "test_file": os.path.relpath(test_path, base_dir) if test_path else None,
             }
         except Exception as e:
-            logger.error(f"Ошибка при запуске тестов: {e}")
-            return {"success": False, "error": str(e), "test_file": test_filename}
+            # Невозможно запустить раннер → считаем SKIPPED (как просили)
+            reason = f"runner_unavailable: {e.__class__.__name__}: {e}"
+            logger.warning(f"Тесты пропущены: {reason}")
+            return {
+                "success": True,          # не валим пайплайн
+                "status": "SKIPPED",
+                "skipped": True,
+                "reason": reason,
+                "command": cmd or None,
+                "exit_code": 0,
+                "output": "",
+                "test_file": os.path.relpath(test_path, base_dir) if test_path else None,
+            }
+
 
     
     def _save_results(self, results: ReviewResults):

@@ -213,5 +213,8 @@ frontend-project/node_modules/*
 frontend-project/package-lock.json
 frontend-project/projects.db
 
+frontend-project/uploads
+frontend-project/review_reports
+
 .DS_Store
 code_review_workspace
