@@ -215,6 +215,7 @@ frontend-project/projects.db
 
 frontend-project/uploads
 frontend-project/review_reports
+*.jar
 
 .DS_Store
 code_review_workspace
