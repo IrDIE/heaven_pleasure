@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
 import glob, tempfile, shutil, sys
 from typing import Optional
+import subprocess
 
 debug_local = True
 
@@ -420,6 +421,17 @@ def upload_project():
         ):
             return jsonify({"success": False, "message": "Invalid URL format"}), 400
 
+        # Сохраняем ссылку в файл
+        user_dir = os.path.join(
+            app.config["UPLOAD_FOLDER"], username, str(time.time())
+        )
+        os.makedirs(user_dir, exist_ok=True)
+        
+        # Создаем файл с ссылкой
+        link_file = os.path.join(user_dir, "project.git")
+        with open(link_file, 'w') as f:
+            f.write(project_url)
+
         # Save project info to database
         conn = get_db_connection()
         c = conn.cursor()
@@ -659,36 +671,63 @@ def llm_simulator(data):
 
 
 
-def _find_latest_zip(username: Optional[str] = None) -> Optional[Path]:
+def _find_latest_project(username: Optional[str] = None) -> Optional[Path]:
+    """
+    Ищет последний проект: ZIP-архив или Git-репозиторий в директории пользователя.
+    """
     base = PROJECT_ROOT / UPLOAD_FOLDER
     if username:
         base = base / username
-    patterns = [str(base / "**" / "project.zip"), str(base / "**" / "*.zip")]
-    candidates = []
-    for pat in patterns:
-        candidates.extend(glob.glob(pat, recursive=True))
-    cand_paths = [Path(p) for p in set(candidates) if os.path.isfile(p)]
+    
+    # Ищем ZIP-архивы
+    zip_patterns = [str(base / "**" / "project.zip"), str(base / "**" / "*.zip")]
+    zip_candidates = []
+    for pat in zip_patterns:
+        zip_candidates.extend(glob.glob(pat, recursive=True))
+    
+    # Ищем файлы с Git-ссылками
+    git_patterns = [str(base / "**" / "*.git"), str(base / "**" / "*.txt")]
+    git_candidates = []
+    for pat in git_patterns:
+        git_candidates.extend(glob.glob(pat, recursive=True))
+    
+    # Объединяем кандидатов
+    all_candidates = zip_candidates + git_candidates
+    cand_paths = [Path(p) for p in set(all_candidates) if os.path.isfile(p)]
+    
     if not cand_paths:
         return None
+    
+    # Сортируем по времени изменения
     cand_paths.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return cand_paths[0]
 
 def _run_linters_for_user(username: Optional[str]) -> dict:
     """
-    Берёт последний uploads/<user>/**/project.zip, распаковывает во временную папку,
-    запускает analyze_repository и пишет результат в data/linters.json.
+    Обрабатывает последний проект (ZIP или Git), запускает линтеры и сохраняет результат.
     """
-    zip_path = _find_latest_zip(username=username)
-    if not zip_path:
-        raise FileNotFoundError("В uploads/ не найден zip для запуска линтеров")
+    project_path = _find_latest_project(username=username)
+    if not project_path:
+        raise FileNotFoundError("Не найден проект для запуска линтеров")
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="linters_"))
     repo_dir = tmp_dir / "repo"
     repo_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        with zipfile.ZipFile(zip_path, 'r') as z:
-            z.extractall(repo_dir)
+        # Обработка ZIP-архива
+        if project_path.suffix == '.zip':
+            with zipfile.ZipFile(project_path, 'r') as z:
+                z.extractall(repo_dir)
+        # Обработка Git-репозитория
+        elif project_path.suffix in ('.git', '.txt'):
+            # Читаем URL из файла
+            with open(project_path, 'r') as f:
+                git_url = f.read().strip()
+            # Клонируем репозиторий
+            subprocess.run(['git', 'clone', git_url, repo_dir], check=True, capture_output=True)
+        else:
+            raise ValueError("Неподдерживаемый формат проекта")
 
         issues, _ = analyze_repository(str(repo_dir), keep=False, verbose=False)
 
@@ -705,13 +744,13 @@ def _extract_repo_to_tmp_for_user(
     limit: int = 100
 ) -> Tuple[Path, Path, list[Path]]:
     """
-    Распаковывает последний ZIP для пользователя, 
+    Распаковывает последний проект (ZIP или Git) для пользователя, 
     чистит от мусорных директорий и бинарников,
     возвращает (tmp_dir, repo_dir, список исходников).
     """
-    zip_path = _find_latest_zip(username=username)
-    if not zip_path:
-        raise FileNotFoundError("В uploads/ не найден zip для анализа мультиагентами")
+    project_path = _find_latest_project(username=username)
+    if not project_path:
+        raise FileNotFoundError("Не найден проект для анализа мультиагентами")
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="ma_repo_"))
     repo_dir = tmp_dir / "repo"
@@ -726,25 +765,57 @@ def _extract_repo_to_tmp_for_user(
         ".zip", ".tar", ".gz", ".rar", ".7z", ".mp4", ".mp3", ".woff", ".woff2",
         ".otf", ".ttf", ".svg", ".yaml"
     }
+    
+    # Добавьте исключение для Git служебных файлов
+    git_ignore_patterns = (
+        ".git/", ".gitignore", ".gitattributes", ".gitmodules",
+        "*.sample",  # Исключаем все .sample файлы (Git hooks)
+    )
 
-    with zipfile.ZipFile(zip_path, "r") as z:
-        for member in z.namelist():
-            if any(part in member for part in bad_dirs):
-                continue
-            z.extract(member, repo_dir)
+    # Обработка ZIP-архива
+    if project_path.suffix == '.zip':
+        with zipfile.ZipFile(project_path, "r") as z:
+            for member in z.namelist():
+                # Пропускаем служебные файлы Git
+                if any(pattern in member for pattern in git_ignore_patterns):
+                    continue
+                if any(part in member for part in bad_dirs):
+                    continue
+                z.extract(member, repo_dir)
+    # Обработка Git-репозитория
+    elif project_path.suffix in ('.git', '.txt'):
+        with open(project_path, 'r') as f:
+            git_url = f.read().strip()
+        # Клонируем репозиторий, но исключаем служебные файлы
+        subprocess.run(['git', 'clone', git_url, repo_dir], check=True, capture_output=True)
+        
+        # Удаляем служебные файлы Git после клонирования
+        for pattern in git_ignore_patterns:
+            for file_path in repo_dir.rglob(pattern):
+                if file_path.is_file():
+                    file_path.unlink()
+                elif file_path.is_dir():
+                    shutil.rmtree(file_path, ignore_errors=True)
+    else:
+        raise ValueError("Неподдерживаемый формат проекта")
 
-    # собрать список файлов
+    # Собрать список файлов, исключая служебные
     files: list[Path] = []
     for p in repo_dir.rglob("*"):
         if not p.is_file():
             continue
         if p.suffix.lower() in binary_exts:
             continue
+        # Дополнительная проверка на служебные файлы Git
+        if any(pattern in str(p) for pattern in git_ignore_patterns):
+            continue
         files.append(p)
         if len(files) >= limit:
             break
 
     return tmp_dir, repo_dir, files
+
+
 
 def llm_analyze_repo_per_file(
     username: Optional[str],
@@ -759,7 +830,7 @@ def llm_analyze_repo_per_file(
     """
     # имя архива (для поля archive)
     try:
-        z = _find_latest_zip(username=username)
+        z = _find_latest_project(username=username)
         archive_name = z.name if z else None
     except Exception:
         archive_name = None
@@ -904,15 +975,29 @@ def llm_answer_to_html_simulator(
 ) -> str:
 
     print("[PIPE] llm_answer_to_html_simulator: using pipeline renderer")
-    zip_path = _find_latest_zip(username=username)
-    if not zip_path:
-        raise FileNotFoundError("В uploads/ не найден .zip проекта")
+    project_path = _find_latest_project(username=username)
+    if not project_path:
+        raise FileNotFoundError("В uploads/ не найден проект")
 
-    tempdir = Path(tempfile.mkdtemp(prefix="report_zip_"))
+    tempdir = Path(tempfile.mkdtemp(prefix="report_"))
     try:
-        base = pcommon.extract_zip(zip_path, tempdir)
-        project_root = pcommon.detect_project_root(base, (answer or {}).get("root", ""))
+        # Обработка ZIP-архива
+        if project_path.suffix == '.zip':
+            base = pcommon.extract_zip(project_path, tempdir)
+        # Обработка Git-репозитория
+        elif project_path.suffix in ('.git', '.txt'):
+            # Читаем URL из файла
+            with open(project_path, 'r') as f:
+                git_url = f.read().strip()
+            # Клонируем репозиторий
+            repo_dir = tempdir / "repo"
+            repo_dir.mkdir(parents=True, exist_ok=True)
+            subprocess.run(['git', 'clone', git_url, repo_dir], check=True, capture_output=True)
+            base = repo_dir
+        else:
+            raise ValueError("Неподдерживаемый формат проекта")
 
+        project_root = pcommon.detect_project_root(base, (answer or {}).get("root", ""))
 
         # 1) LLM-issues → добавляем сниппеты
         llm_raw = json.loads((MULTIAGENT_JSON).read_text(encoding="utf-8")) if MULTIAGENT_JSON.exists() else {}
@@ -991,7 +1076,7 @@ def process_review_async(project_id, project_data):
         # C) Генерация HTML-отчёта пайплайном
         try:
             report_path = llm_answer_to_html_simulator(
-                review_result,
+                None,  # Первый параметр больше не используется
                 username=project_data.get("username"),
                 project_id=project_id,
                 project_name=project_data.get("project_name"),
