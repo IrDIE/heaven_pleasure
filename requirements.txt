@@ -1,0 +1,12 @@
+flask
+flask_cors
+GitPython>=3.1.0
+flake8>=6.0.0
+flake8-json>=0.1.6
+autogen
+pydantic==2.11.7
+pydantic_core==2.33.2
+pydantic-settings==2.10.1
+pytest
+ag2[openai]
+openai==1.66.3
