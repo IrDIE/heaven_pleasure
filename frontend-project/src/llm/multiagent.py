@@ -379,24 +379,62 @@ class CodeReviewManager:
             default_auto_reply="",
         )
         
-    
-    def _invoke_agent(self, agent: ConversableAgent, prompt: str, max_retries: int = None, *, expected_kind: str, filename: str = "student_code.py") -> dict:
+
+    def _is_valid_payload(self, expected_kind: str, data: dict) -> bool:
+        """Минимальная структурная проверка ответа агента."""
+        if not isinstance(data, dict):
+            return False
+        # Любой JSON с ключом "error" — считаем отказом/невалидным
+        if "error" in data:
+            return False
+
+        if expected_kind == "architecture":
+            req = ("agent", "role", "name", "overall", "positives", "issues")
+            return all(k in data for k in req) and isinstance(data.get("issues"), list)
+        if expected_kind == "quality":
+            req = ("agent", "role", "name", "overall", "issues")
+            return all(k in data for k in req) and isinstance(data.get("issues"), list)
+        if expected_kind == "tester":
+            req = ("agent", "role", "summary", "issues", "test_code")
+            return (all(k in data for k in req)
+                    and isinstance(data.get("summary"), dict)
+                    and isinstance(data.get("issues"), list))
+        return False
+
+        
+    def _invoke_agent(
+        self,
+        agent: ConversableAgent,
+        prompt: str,
+        max_retries: int = None,
+        *,
+        expected_kind: str,
+        filename: str = "student_code.py"
+    ) -> dict:
         if max_retries is None:
             max_retries = self.config.MAX_REVIEW_RETRIES
         agent.reset()
-
         def _need_fallback(msg: str) -> Optional[str]:
             if not msg:
                 return "empty response"
-            m = re.search(r"(cannot\s+review|can[’']?t\s+review|не\s+могу\s+(проанализировать|оценить)|unsupported|not\s+supported)", msg, re.IGNORECASE)
-            if m:
+            # Явные текстовые отказы
+            if re.search(r"(cannot\s+review|can[’']?t\s+review|не\s+могу\s+(проанализировать|оценить)|unsupported|not\s+supported)",
+                        msg, re.IGNORECASE):
                 return msg.strip()[:500]
+            # JSON с ключом error
+            try:
+                j = self._extract_json(msg)
+                if isinstance(j, dict) and "error" in j:
+                    return str(j.get("error") or "error field in JSON")[:500]
+            except Exception:
+                pass
             return None
 
         for attempt in range(max_retries):
             logger.info(f"Вызов {agent.name}, попытка {attempt + 1}/{max_retries}")
             temp_user_proxy = self._create_fresh_user_proxy()
             last_message = ""
+
             try:
                 if attempt > 0:
                     time.sleep(1)
@@ -420,29 +458,29 @@ class CodeReviewManager:
                     logger.error(f"Fallback also failed for {agent.name}: {fallback_error}")
                     last_message = ""
 
-            # токены/лог
+            # учёт токенов/лог
             self.token_tracker.track_agent_call(agent_name=agent.name, input_text=prompt, output_text=last_message)
             self.logger._write_raw(f"\n=== OUTPUT <- {agent.name} ===\n{last_message}\n")
 
-            # 1) если явное "не могу" — сразу структурный fallback
+            # 1) Явный отказ → фолбэк
             fb_reason = _need_fallback(last_message)
             if fb_reason:
-                logger.info(f"{agent.name}: unsupported -> fallback")
+                logger.info(f"{agent.name}: unsupported/error -> fallback")
                 return self._fallback_payload(expected_kind, filename, fb_reason)
 
-            # 2) попытка вытащить JSON
+            # 2) Пытаемся вытащить JSON и проверить форму
             if last_message:
                 json_data = self._extract_json(last_message)
-                if json_data:
+                if json_data and self._is_valid_payload(expected_kind, json_data):
                     return json_data
-                logger.warning(f"No valid JSON from {agent.name}")
+                logger.warning(f"No valid '{expected_kind}' JSON shape from {agent.name}")
 
-            # 3) ретрай с ужесточением
+            # 3) Ретрай с ужесточением
             if attempt < max_retries - 1:
                 prompt = f"ВЕРНИТЕ ТОЛЬКО JSON!\n{prompt}"
                 time.sleep(2)
 
-        # 4) окончательный структурный fallback
+        # 4) Окончательный фолбэк
         logger.error(f"{agent.name}: returning fallback after {max_retries} attempts")
         return self._fallback_payload(expected_kind, filename, "no valid JSON")
 
@@ -570,63 +608,56 @@ class CodeReviewManager:
             run_tests: bool = True,
             repo_dir: Optional[str] = None,
         ) -> ReviewResults:
-        """Основной метод code review с улучшенной изоляцией агентов."""
+        """Основной метод code review с устойчивыми фолбэками."""
         logger.info("Начало code review")
         self.logger.log_phase_start("Code Review", 1)
-        
+
         # Save code
         self._save_code(code, filename, repo_dir)
-        
+
         # Initialize results
         results = ReviewResults(filename=filename)
-        
-        # Base prompt for all agents
+
+        # Base prompt
         base_prompt = f"""
         Проанализируйте следующий код и верните результат в требуемом JSON формате.
-        
+
         Файл: {filename}
-        
+
         КОД:
         ```
         {code}
         ```
-        
+
         ВЕРНИТЕ ТОЛЬКО JSON В ВАШЕМ ФОРМАТЕ!
         """
-        
-        # 1. Architecture review
-        logger.info("=" * 50)
-        logger.info("Запуск архитектурного анализа")
-        logger.info("=" * 50)
-        
+
+        # 1. Architecture
+        logger.info("=" * 50); logger.info("Запуск архитектурного анализа"); logger.info("=" * 50)
         arch_json = self._invoke_agent(self.architecture_reviewer, base_prompt, expected_kind="architecture", filename=filename)
         if arch_json:
             try:
                 results.architecture_review = ArchitectureReviewResult(**arch_json)
                 self.logger.log_agent_action("АрхитекторРевьюер", "Анализ завершен", "Успешно")
             except ValidationError as e:
-                logger.error(f"Ошибка валидации архитектурного review: {e}")
                 self.logger.log_error("АрхитекторРевьюер", str(e))
-        
-        # 2. Quality review
-        logger.info("=" * 50)
-        logger.info("Запуск анализа качества")
-        logger.info("=" * 50)
-        
+                fb = self._fallback_payload("architecture", filename, f"validation_error: {e.errors()[:1]}")
+                results.architecture_review = ArchitectureReviewResult(**fb)
+
+        # 2. Quality
+        logger.info("=" * 50); logger.info("Запуск анализа качества"); logger.info("=" * 50)
         quality_json = self._invoke_agent(self.quality_reviewer, base_prompt, expected_kind="quality", filename=filename)
         if quality_json:
             try:
                 results.quality_review = QualityReviewResult(**quality_json)
                 self.logger.log_agent_action("КачествоРевьюер", "Анализ завершен", "Успешно")
             except ValidationError as e:
-                logger.error(f"Ошибка валидации quality review: {e}")
                 self.logger.log_error("КачествоРевьюер", str(e))
-        
-        # 3. Testing
-        logger.info("=" * 50)
-        logger.info("Запуск тестирования")
-        logger.info("=" * 50)
-        
+                fb = self._fallback_payload("quality", filename, f"validation_error: {e.errors()[:1]}")
+                results.quality_review = QualityReviewResult(**fb)
+
+        # 3. Tester
+        logger.info("=" * 50); logger.info("Запуск тестирования"); logger.info("=" * 50)
         test_json = self._invoke_agent(self.tester_agent, base_prompt, expected_kind="tester", filename=filename)
         if test_json:
             try:
@@ -635,8 +666,7 @@ class CodeReviewManager:
 
                 if run_tests and self.config.ENABLE_TEST_EXECUTION:
                     raw_code = getattr(results.testing_results, "test_code", None)
-                    lang_hint = None  # агент может положить это в test_json.get("runner", {}).get("language")
-                    # для Python санитайзим, для остальных — как есть
+                    lang_hint = None
                     safe_code = (self._sanitize_test_code(raw_code, filename)
                                 if raw_code and (lang_hint == "python" or filename.endswith(".py"))
                                 else (raw_code or ""))
@@ -648,40 +678,50 @@ class CodeReviewManager:
                     )
                     results.test_execution = test_exec_results
 
-                # убираем тестовый код из итогового JSON
+                # Убираем тестовый код из итогового JSON
                 results.testing_results.test_code = None
-                    
+
             except ValidationError as e:
-                logger.error(f"Ошибка валидации testing review: {e}")
                 self.logger.log_error("Тестировщик", str(e))
-        
-        # End session
+                fb = self._fallback_payload("tester", filename, f"validation_error: {e.errors()[:1]}")
+                # Приводим к ожидаемой схеме TesterResult
+                # (если в _fallback_payload у тебя archive=[], тоже норм)
+                if fb.get("archive", None) is False:
+                    fb["archive"] = None
+                results.testing_results = TesterResult(**fb)
+
+        # Закрытие лог-сессий
         self.logger.log_session_end()
         self.token_tracker.log_session_summary()
-        
+
+        # root_dir для сводного JSON
         root_dir = None
-        
         if repo_dir:
             try:
                 root_dir = os.path.basename(os.path.abspath(repo_dir))
             except Exception:
                 root_dir = None
 
+        # Сборка плоского autoreview
+        arch_json_safe = arch_json or {}
+        quality_json_safe = quality_json or {}
+        test_json_safe = test_json or {}
+
         autoreview = self._to_autoreview(
             filename=filename,
-            arch=arch_json or {},
-            quality=quality_json or {},
-            tester=test_json or {},
-            archive_name=None,      # сюда можешь подставить имя zip, если знаешь
+            arch=arch_json_safe,
+            quality=quality_json_safe,
+            tester=test_json_safe,
+            archive_name=None,
             root_dir=root_dir,
         )
 
-        # Завершаем сессию логов/токенов как раньше
+        # Дублирующее закрытие логов (как было у тебя) — оставим для совместимости
         self.logger.log_session_end()
         self.token_tracker.log_session_summary()
 
-        # Возвращаем ПЛОСКИЙ dict вместо Pydantic
         return autoreview
+
         
     def _fallback_payload(self, kind: str, filename: str, reason: str) -> dict:
         reason = (reason or "Unsupported or unrecognized content").strip()
