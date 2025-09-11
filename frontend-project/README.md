@@ -1,5 +1,11 @@
 # AutoReview
 
+* https://docs.google.com/presentation/d/1bFnXhklGaTtl6p0MQsZlilChi8zOfBZm5gSx3HOTQlw/edit?slide=id.p#slide=id.p
+
+* http://158.160.176.112:5000/
+
+
+
 A web application that automates code review using AI-powered analysis. Upload your projects and receive comprehensive feedback on code quality, potential issues, and improvement suggestions.
 
 ## Features
