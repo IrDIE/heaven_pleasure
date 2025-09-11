@@ -1,6 +1,6 @@
 # AutoReview
 
-* https://docs.google.com/presentation/d/1bFnXhklGaTtl6p0MQsZlilChi8zOfBZm5gSx3HOTQlw/edit?slide=id.p#slide=id.p
+* [Презентация]([https://www.google.com](https://docs.google.com/presentation/d/1bFnXhklGaTtl6p0MQsZlilChi8zOfBZm5gSx3HOTQlw/edit?slide=id.p#slide=id.p))
 
 * http://158.160.176.112:5000/
 
