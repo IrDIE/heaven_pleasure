@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Create Account – AutoReview</title>
+  <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <style type="text/tailwindcss">
+    :root {
+      --primary-500: #22c55e;
+      --primary-600: #16a34a;
+    }
+    body {
+      font-family: 'Spline Sans', sans-serif;
+    }
+  </style>
+</head>
+<body class="antialiased bg-gray-900 text-white">
+  <div class="relative flex min-h-screen flex-col justify-center overflow-hidden py-6 sm:py-12">
+    <div class="relative bg-gray-800 px-6 pb-8 pt-10 shadow-xl ring-1 ring-gray-900/5 sm:mx-auto sm:max-w-lg sm:rounded-xl sm:px-10">
+      <div class="mx-auto max-w-md">
+        <h1 class="text-2xl font-bold mb-6">Create your account</h1>
+
+        <!-- SIGNUP FORM -->
+        <form id="signup-form" class="space-y-6">
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-300">Username</label>
+            <input id="username" name="username" type="text" required placeholder="Choose a username"
+              class="mt-2 block w-full rounded-md border-0 bg-gray-700 py-2.5 text-white shadow-sm ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6"/>
+          </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+            <input id="password" name="password" type="password" required placeholder="Choose a password"
+              class="mt-2 block w-full rounded-md border-0 bg-gray-700 py-2.5 text-white shadow-sm ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6"/>
+          </div>
+          <div>
+            <button id="signup-btn" class="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition-colors" type="submit">
+              Sign Up
+            </button>
+
+            <!-- <button type="submit"
+              class="w-full justify-center rounded-md bg-primary-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+              Sign up
+            </button> -->
+          </div>
+        </form>
+
+        <p class="mt-6 text-gray-400 text-sm">
+          Already have an account?
+          <a id="login-link" href="#" class="font-semibold text-primary-400 hover:text-primary-300">Log in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROUTING / AUTH LOGIC -->
+  <!-- <script type="module" src="../src/index.js"></script> -->
+   <script src="../src/index.js" defer></script>
+</body>
+</html>
