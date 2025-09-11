@@ -29,8 +29,8 @@ class Config(BaseSettings):
     DOCKER_IMAGE: str | None = None
 
     # Стоимость токенов
-    TOKEN_INPUT_COST: float = 0.0
-    TOKEN_OUTPUT_COST: float = 0.0
+    TOKEN_INPUT_COST: float = 0.0002
+    TOKEN_OUTPUT_COST: float = 0.0002
 
     # Настройки review
     MAX_REVIEW_RETRIES: int = 3
