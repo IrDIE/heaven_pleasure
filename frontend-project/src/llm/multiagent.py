@@ -663,7 +663,6 @@ class CodeReviewManager:
             try:
                 results.testing_results = TesterResult(**test_json)
                 self.logger.log_agent_action("Тестировщик", "Анализ завершен", "Успешно")
-
                 if run_tests and self.config.ENABLE_TEST_EXECUTION:
                     raw_code = getattr(results.testing_results, "test_code", None)
                     lang_hint = None
@@ -779,145 +778,156 @@ class CodeReviewManager:
         repo_dir: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Универсальный запуск тестов.
-        - Записывает archive (если есть).
-        - Определяет стек/раннер по archive/имёнам/содержимому.
-        - Если агент дал явную команду — используем её.
-        - Если запуск не возможен — помечаем skipped.
+        Python + pytest only.
+        Возвращает подробности запуска: started, collected, passed, failed, errors, skipped, output_tail.
+        Полный вывод сохраняется в tests/_last_run.log.
         """
+        import os, re, shlex
+        from pathlib import Path
+
+        def _parse_summary(txt: str) -> Dict[str, int]:
+            # Ищем строки вида: "collected 3 items", и итог: "3 passed, 1 skipped, 1 failed in 0.12s"
+            res = {"collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped": 0}
+            m = re.search(r"\bcollected\s+(\d+)\s+items?", txt)
+            if m:
+                res["collected"] = int(m.group(1))
+            # pytest итоговая строка: "... X passed, Y failed, Z skipped, W errors ..."
+            for key, pat in {
+                "passed": r"(\d+)\s+passed",
+                "failed": r"(\d+)\s+failed",
+                "errors": r"(\d+)\s+errors?",
+                "skipped": r"(\d+)\s+skipped",
+            }.items():
+                m = re.search(pat, txt)
+                if m:
+                    res[key] = int(m.group(1))
+            return res
+
         base_dir = repo_dir or self.config.WORKSPACE_DIR
         os.makedirs(base_dir, exist_ok=True)
 
-        # 1) Записать archive
-        created_files = []
-        archive = test_result_json.get("archive") or []
-        for item in archive:
+        # 1) Записать архив (если агент прислал вспомогательные файлы)
+        for item in (test_result_json.get("archive") or []):
             try:
-                rel_path = os.path.normpath(item.get("path", "")).lstrip(os.sep)
+                rel_path_raw = str(item.get("path", ""))
+                rel_path = os.path.normpath(rel_path_raw).lstrip(os.sep)
                 if not rel_path or ".." in rel_path.split(os.sep):
                     continue
                 dst = os.path.join(base_dir, rel_path)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 with open(dst, "w", encoding="utf-8") as f:
                     f.write(item.get("content", ""))
-                created_files.append(dst)
             except Exception as e:
                 logger.warning(f"Не удалось записать архивный файл {item.get('path')}: {e}")
 
-        # 2) Определить язык/раннер
-        def _has(*names: str) -> bool:
-            return any(os.path.exists(os.path.join(base_dir, n)) for n in names)
+        # 2) Сохранить тесты (если есть код)
+        test_path: Optional[str] = None
+        tests_dir = os.path.join(base_dir, "tests")
+        os.makedirs(tests_dir, exist_ok=True)
 
-        def _any_ext(patterns) -> bool:
-            for root, _, files in os.walk(base_dir):
-                for fn in files:
-                    if any(fn.endswith(ext) for ext in patterns):
-                        return True
-            return False
-
-        # если агент прислал runner.command — используем его
-        runner_cfg = (test_result_json.get("runner") or {}) if isinstance(test_result_json, dict) else {}
-        cmd = (runner_cfg.get("command") or "").strip()
-        language_hint = (runner_cfg.get("language") or "").strip().lower()
-
-        # 3) Сохранить основной тестовый файл (если есть)
-        test_path = None
         if test_code:
-            # Выбор пути по подсказке/детекции
-            if language_hint == "python" or main_filename.endswith(".py"):
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                test_filename = f"test_{os.path.basename(main_filename)}"
-                test_path = os.path.join(tests_dir, test_filename)
-            elif language_hint in ("javascript", "typescript") or _any_ext((".js", ".mjs", ".cjs", ".ts", ".tsx")):
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                ext = ".test.ts" if _any_ext((".ts", ".tsx")) else ".test.js"
-                test_path = os.path.join(tests_dir, f"main{ext}")
-            elif language_hint == "go" or _any_ext((".go",)):
-                # в Go имя файла должно заканчиваться на _test.go
-                pkg_dir = base_dir
-                test_path = os.path.join(pkg_dir, "autogen_test.go")
-            elif language_hint in ("java", "kotlin") or _has("pom.xml", "build.gradle", "build.gradle.kts"):
-                test_root = os.path.join(base_dir, "src", "test", "java")
-                os.makedirs(test_root, exist_ok=True)
-                test_path = os.path.join(test_root, "AutogenTests.java")
-            elif language_hint == "rust" or _has("Cargo.toml"):
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                test_path = os.path.join(tests_dir, "autogen_tests.rs")
-            elif language_hint in ("c#", "dotnet") or _any_ext((".csproj",)):
-                test_root = os.path.join(base_dir, "Tests")
-                os.makedirs(test_root, exist_ok=True)
-                test_path = os.path.join(test_root, "AutogenTests.cs")
-            else:
-                # дефолт — pytest
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                test_filename = f"test_{os.path.basename(main_filename)}"
-                test_path = os.path.join(tests_dir, test_filename)
+            try:
+                stem = Path(Path(main_filename).name or "student_code.py").stem or "student_code"
+                test_path = os.path.join(tests_dir, f"test_{stem}.py")
+                with open(test_path, "w", encoding="utf-8") as f:
+                    f.write(test_code)
+                logger.info(f"Тесты сохранены: {test_path}")
+            except Exception as write_err:
+                reason = f"cannot_write_tests: {write_err.__class__.__name__}: {write_err}"
+                logger.warning(f"Тесты пропущены: {reason}")
+                return {
+                    "started": False,
+                    "success": True,
+                    "status": "SKIPPED",
+                    "skipped": True,
+                    "reason": reason,
+                    "command": None,
+                    "exit_code": 0,
+                    "output": "",
+                    "output_tail": "",
+                    "test_file": None,
+                    "collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped_count": 0,
+                }
 
-            with open(test_path, "w", encoding="utf-8") as f:
-                f.write(test_code)
-            created_files.append(test_path)
-            logger.info(f"Тесты сохранены: {test_path}")
+        # 3) Нет ни одного тестового файла → SKIPPED
+        has_tests = any(fn.startswith("test_") and fn.endswith(".py") for fn in os.listdir(tests_dir))
+        if not has_tests:
+            reason = "no_tests_available"
+            logger.info("Нет тестов для запуска: SKIPPED")
+            return {
+                "started": False,
+                "success": True,
+                "status": "SKIPPED",
+                "skipped": True,
+                "reason": reason,
+                "command": None,
+                "exit_code": 0,
+                "output": "",
+                "output_tail": "",
+                "test_file": None,
+                "collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped_count": 0,
+            }
 
-        # 4) Если команда не задана агентом — подбираем
-        if not cmd:
-            if language_hint == "python" or (test_path and test_path.endswith(".py")):
-                cmd = f"python -m pytest {test_path if test_path else 'tests'} -q -q --maxfail=1 --disable-warnings"
-            elif language_hint in ("javascript", "typescript") or _has("package.json"):
-                # предпочитаем jest, иначе node --test (Node>=18)
-                if _has("node_modules/.bin/jest") or '"jest"' in open(os.path.join(base_dir, "package.json"), "r", encoding="utf-8").read() if _has("package.json") else False:
-                    cmd = "npx jest --runInBand"
-                else:
-                    # node встроенный тест-раннер
-                    target = test_path or "tests"
-                    cmd = f"node --test {target}"
-            elif language_hint == "go" or _any_ext((".go",)):
-                cmd = "go test ./..."
-            elif language_hint in ("java", "kotlin") or _has("pom.xml"):
-                cmd = "mvn -q -e -DskipITs test"
-            elif _has("build.gradle", "build.gradle.kts"):
-                cmd = "gradle test || ./gradlew test"
-            elif language_hint == "rust" or _has("Cargo.toml"):
-                cmd = "cargo test"
-            elif language_hint in ("c#", "dotnet") or _any_ext((".csproj",)):
-                cmd = "dotnet test --nologo"
-            else:
-                # fallback — pytest
-                target = test_path if (test_path and test_path.endswith(".py")) else "tests"
-                cmd = f"python -m pytest {target} -q -q --maxfail=1 --disable-warnings"
+        # 4) Команда pytest: показываем отчёт и выводим print-ы
+        target = test_path if (test_path and test_path.endswith(".py")) else "tests"
+        # без -q -q; включаем -rA (все отчёты) и -s (не глушить stdout)
+        cmd = f"python -m pytest {shlex.quote(target)} -rA -s --maxfail=1 --disable-warnings"
+        shell = f"cd {shlex.quote(base_dir)} && {cmd}"
+        logger.info(f"Pytest command: {cmd}")
 
-        # 5) Запустить
+        # 5) Запуск
+        log_path = os.path.join(tests_dir, "_last_run.log")
         try:
-            exit_code, output = self.user_proxy.execute_code_blocks([("sh", cmd)], work_dir=base_dir)
-            # Успех: код 0 → прошли, >0 → упали
+            exit_code, output = self.user_proxy.execute_code_blocks([("sh", shell)])
+            # Сохраняем полный вывод на диск
+            try:
+                with open(log_path, "w", encoding="utf-8") as lf:
+                    lf.write(output or "")
+            except Exception as e:
+                logger.warning(f"Не удалось сохранить лог pytest: {e}")
+
+            # Разбор и статус
+            summary = _parse_summary(output or "")
             success = (exit_code == 0)
             status = "PASSED" if success else "FAILED"
+            tail_lines = "\n".join((output or "").splitlines()[-50:])  # хвост для логов
+
+            # Лог — видимый хвост
+            logger.info("Pytest output (tail):\n" + (tail_lines or "<empty>"))
+
             return {
+                "started": True,
                 "success": success,
                 "status": status,
                 "exit_code": exit_code,
                 "output": output,
+                "output_tail": tail_lines,
                 "command": cmd,
                 "test_file": os.path.relpath(test_path, base_dir) if test_path else None,
+                "collected": summary["collected"],
+                "passed": summary["passed"],
+                "failed": summary["failed"],
+                "errors": summary["errors"],
+                "skipped_count": summary["skipped"],
+                "log_file": os.path.relpath(log_path, base_dir),
             }
-        except Exception as e:
-            # Невозможно запустить раннер → считаем SKIPPED (как просили)
-            reason = f"runner_unavailable: {e.__class__.__name__}: {e}"
+        except Exception as run_err:
+            reason = f"runner_unavailable: {run_err.__class__.__name__}: {run_err}"
             logger.warning(f"Тесты пропущены: {reason}")
             return {
+                "started": False,
                 "success": True,          # не валим пайплайн
                 "status": "SKIPPED",
                 "skipped": True,
                 "reason": reason,
-                "command": cmd or None,
+                "command": cmd,
                 "exit_code": 0,
                 "output": "",
+                "output_tail": "",
                 "test_file": os.path.relpath(test_path, base_dir) if test_path else None,
+                "collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped_count": 0,
+                "log_file": os.path.relpath(log_path, base_dir),
             }
-
 
     
     def _save_results(self, results: ReviewResults):
