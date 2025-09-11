@@ -1,0 +1,141 @@
+/* upload_theme.css — светлая тема "как на странице загрузки" */
+:root{
+  --bg:#ffffff; --txt:#0b0b0b; --muted:#6b7280; --link:#111827;
+  --primary:#111827; --accent:#111827;
+  --danger:#ef4444; --danger-hover:#dc2626;
+  --border:#e5e7eb; --card:#ffffff; --chip:#f3f4f6;
+  --radius:12px; --shadow:0 1px 2px rgba(0,0,0,.06);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font:16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+
+/* top nav */
+.nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);z-index:10}
+.nav__wrap{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700}
+.brand__logo{width:22px;height:22px;background:#000;border-radius:4px}
+.nav__links{margin-left:auto;display:flex;gap:24px;align-items:center}
+.nav__links a{color:var(--link);text-decoration:none;font-weight:600}
+.btn-logout{margin-left:16px;background:var(--danger);color:#fff;border:none;border-radius:999px;padding:10px 16px;cursor:pointer}
+.btn-logout:hover{background:var(--danger-hover)}
+
+/* page header */
+.container{max-width:1180px;margin:0 auto;padding:24px 20px}
+.h1{margin:8px 0 4px;font-size:28px;font-weight:800}
+.sub{margin:0;color:var(--muted)}
+
+/* action bar */
+.actions{display:flex;align-items:center;gap:18px;margin:22px 0 12px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);background:#fff;border-radius:10px;cursor:pointer;box-shadow:var(--shadow)}
+.btn:hover{background:#fafafa}
+.link-inline{margin-left:auto;color:var(--link);text-decoration:none;font-weight:600}
+
+/* layout cards */
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card__hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card__title{margin:0;font-size:16px;font-weight:700}
+.card__bd{padding:12px 14px}
+
+/* chips / stats */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--chip);border:1px solid var(--border);border-radius:999px;font-size:.9rem}
+.chip b{font-weight:800}
+.b-crit{background:#fef2f2;border-color:#fecaca}
+.b-major{background:#fffbeb;border-color:#fde68a}
+.b-minor{background:#eff6ff;border-color:#bfdbfe}
+.b-info{background:#ecfdf5;border-color:#bbf7d0}
+
+/* tree */
+.tree{list-style:none;margin:0;padding-left:0;font-size:.95rem}
+.tree li{margin:2px 0}
+.row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:default}
+.row:hover{background:#f9fafb}
+.row[data-file="true"]{cursor:pointer;background:#fff}
+.toggle{width:18px;height:18px;display:grid;place-items:center;border:1px solid var(--border);border-radius:4px;font-size:.75rem;color:#4b5563}
+.name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnts{display:inline-flex;gap:4px}
+.c{min-width:18px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:1px 4px;font-size:.75rem;opacity:.9}
+.c.cr{border-color:#fecaca;color:#b91c1c}
+.c.ma{border-color:#fde68a;color:#b45309}
+.c.mi{border-color:#bfdbfe;color:#1d4ed8}
+.c.in{border-color:#bbf7d0;color:#059669}
+.hidden{display:none}
+
+/* issue details */
+.issue{border-top:1px solid var(--border);padding:12px 0}
+.issue h3{margin:0 0 6px;font-size:16px}
+.meta{display:flex;gap:8px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:.82rem}
+.badge.critical{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.badge.major{background:#fffbeb;border-color:#fde68a;color:#b45309}
+.badge.minor{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.badge.info{background:#ecfdf5;border-color:#bbf7d0;color:#059669}
+.empty{color:var(--muted)}
+
+/* code */
+pre.code{background:#0a0a0a;color:#f3f4f6;border-radius:10px;padding:10px 12px;overflow:auto;margin:8px 0 0}
+.code-line{display:grid;grid-template-columns:54px 1fr;gap:12px;padding:2px 6px;border-radius:6px}
+.code-line .ln{color:#9ca3af;text-align:right}
+.code-line .lc{white-space:pre;overflow-wrap:anywhere}
+.code-line.hl{background:rgba(255,255,255,.06)}
+
+/* --- code snippet: horizontal scroll + no wrapping --- */
+
+/* #content pre {
+  overflow-x: auto;        
+  white-space: pre;       
+  word-break: normal;     
+  margin: 0;
+} */
+/* на случай <code> внутри <pre> */
+/* #content pre code { white-space: inherit; } */
+/* чтобы длинные строки не «ужимались» и реально появлялся скролл */
+/* #content pre { min-width: 0; }  */
+
+
+/* code */
+pre.code {
+  background: #0a0a0a;
+  color: #f3f4f6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  overflow: auto;
+  margin: 8px 0 0;
+  white-space: pre;        /* Don't wrap lines */
+  word-break: normal;      /* Don't break words */
+}
+
+.code-line {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  min-width: min-content;  /* Prevent grid from shrinking too much */
+}
+
+.code-line .ln {
+  color: #9ca3af;
+  text-align: right;
+  user-select: none;       /* Prevent line number selection */
+}
+
+.code-line .lc {
+  white-space: pre;        /* Preserve whitespace and don't wrap */
+  overflow: visible;       /* Allow content to overflow */
+  min-width: 0;           /* Allow shrinking */
+}
+
+.code-line.hl {
+  background: rgba(255, 255, 255, .06);
+}
+
+/* Ensure code inside pre inherits the white-space behavior */
+pre.code code {
+  white-space: inherit;
+  display: block;
+  min-width: 100%;        /* Force horizontal scroll when needed */
+}

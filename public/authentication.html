@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Stitch Design</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+      :root {
+        --primary-50: #f0fdf4;
+        --primary-100: #dcfce7;
+        --primary-200: #bbf7d0;
+        --primary-300: #86efac;
+        --primary-400: #4ade80;
+        --primary-500: #22c55e;
+        --primary-600: #16a34a;
+        --primary-700: #15803d;
+        --primary-800: #166534;
+        --primary-900: #14532d;
+        --primary-950: #052e16;
+      }
+      body {
+        font-family: 'Spline Sans', sans-serif;
+      }
+    </style>
+</head>
+<body class="antialiased">
+<div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-gray-900 py-6 sm:py-12">
+<div class="relative bg-gray-800 px-6 pb-8 pt-10 shadow-xl ring-1 ring-gray-900/5 sm:mx-auto sm:max-w-lg sm:rounded-xl sm:px-10">
+<div class="mx-auto max-w-md">
+<div class="flex items-center gap-3">
+<svg class="h-8 w-8 text-primary-400" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M6 6H42L36 24L42 42H6L12 24L6 6Z" fill="currentColor"></path>
+</svg>
+<h1 class="text-2xl font-bold text-white">Autoreview</h1>
+</div>
+<div class="divide-y divide-gray-700">
+<div class="space-y-6 py-8 text-base leading-7 text-gray-400">
+<h2 class="text-xl font-semibold text-white">Welcome back</h2>
+<p>Please enter your credentials to log in.</p>
+<form class="space-y-6">
+<div>
+<label class="block text-sm font-medium text-gray-300" for="username">Username</label>
+<div class="mt-2">
+<input autocomplete="username" class="block w-full rounded-md border-0 bg-gray-700 py-2.5 text-white shadow-sm ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6" id="username" name="username" placeholder="Enter your username" required="" type="text"/>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between">
+<label class="block text-sm font-medium leading-6 text-gray-300" for="password">Password</label>
+<div class="text-sm">
+<a class="font-semibold text-primary-400 hover:text-primary-300" href="#">Forgot password?</a>
+</div>
+</div>
+<div class="mt-2">
+<input autocomplete="current-password" class="block w-full rounded-md border-0 bg-gray-700 py-2.5 text-white shadow-sm ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6" id="password" name="password" placeholder="Enter your password" required="" type="password"/>
+</div>
+</div>
+<div>
+<button class="flex w-full justify-center rounded-md bg-primary-500 px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600" type="submit">
+                    Log in
+                  </button>
+</div>
+</form>
+</div>
+<div class="pt-6 text-base leading-7">
+<p class="text-gray-400">
+                Don't have an account?
+                <a class="font-semibold text-primary-400 hover:text-primary-300" href="#">Sign up</a>
+</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>

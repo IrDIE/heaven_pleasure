@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+  <link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900&amp;family=Spline+Sans%3Awght%40400%3B500%3B700" onload="this.rel='stylesheet'" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <title>Stitch Design</title>
+  <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <style type="text/tailwindcss">
+    :root {
+      --primary-50: #f0fdf6;
+      --primary-100: #dffcee;
+      --primary-200: #c1f9de;
+      --primary-300: #8df3c2;
+      --primary-400: #55e9a2;
+      --primary-500: #38e07b;
+      --primary-600: #25c06c;
+      --primary-700: #1d9557;
+      --primary-800: #1a7647;
+      --primary-900: #16613b;
+      --primary-950: #0a3620;
+      --secondary-50: #f2f2f2;
+      --secondary-100: #e6e6e6;
+      --secondary-200: #cccccc;
+      --secondary-300: #b3b3b3;
+      --secondary-400: #999999;
+      --secondary-500: #808080;
+      --secondary-600: #666666;
+      --secondary-700: #4d4d4d;
+      --secondary-800: #333333;
+      --secondary-900: #1a1a1a;
+      --secondary-950: #0d0d0d;
+      --surface-0: #f8fafc;
+      --surface-50: #f1f5f9;
+      --surface-100: #e2e8f0;
+      --surface-200: #cbd5e1;
+      --surface-300: #94a3b8;
+      --surface-400: #64748b;
+      --surface-500: #475569;
+      --surface-600: #334155;
+      --surface-700: #1e293b;
+      --surface-800: #0f172a;
+      --surface-900: #020617;
+    }
+    body.dark {
+      --surface-0: #020617;
+      --surface-50: #0f172a;
+      --surface-100: #1e293b;
+      --surface-200: #334155;
+      --surface-300: #475569;
+      --surface-400: #64748b;
+      --surface-500: #94a3b8;
+      --surface-600: #cbd5e1;
+      --surface-700: #e2e8f0;
+      --surface-800: #f1f5f9;
+      --surface-900: #f8fafc;
+    }
+  </style>
+</head>
+<body class="dark bg-surface-900 text-surface-200 font-sans">
+  <div class="relative flex size-full min-h-screen flex-col" style='font-family: "Spline Sans", "Noto Sans", sans-serif;'>
+    <div class="flex h-full grow flex-col">
+      <!-- HEADER -->
+      <header class="flex items-center justify-between whitespace-nowrap border-b border-surface-800 px-10 py-3">
+        <div class="flex items-center gap-4">
+          <svg class="h-6 w-6 text-primary-500" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
+          </svg>
+          <h2 class="text-lg font-bold tracking-tight text-surface-50">AutoReview</h2>
+        </div>
+        <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+          <a class="hover:text-primary-400 transition-colors" href="#">Projects</a>
+          <a class="hover:text-primary-400 transition-colors" href="#">Reviews</a>
+          <a class="hover:text-primary-400 transition-colors" href="#">Help</a>
+        </nav>
+        <div class="flex items-center gap-4">
+          <button class="md:hidden">
+            <span class="material-symbols-outlined"> menu </span>
+          </button>
+          <!-- Avatar -->
+          <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='font-family:w'></div>
+          <!-- Logout -->
+          <button id="logoutBtn" class="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors" type="submit">
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT (unchanged) -->
+      <main class="flex flex-1 flex-col lg:flex-row p-4 md:p-6 lg:p-8 gap-8">
+        <!-- Left column -->
+        <div class="flex-1 space-y-6">
+          <!-- Dashboard -->
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 class="text-3xl font-bold tracking-tight text-surface-50">Project Dashboard</h1>
+              <p class="text-surface-400">Manage your projects and track their review status.</p>
+            </div>
+            <div class="flex gap-2">
+
+              <button id="UploadBtn" class="inline-flex items-center justify-center gap-2 rounded-full h-10 px-6 bg-primary-500 text-surface-900 text-sm font-bold tracking-wide hover:bg-primary-600 transition-colors" type="submit">
+                <span class="material-symbols-outlined"> upload_file </span>
+                <span>Upload Project</span>
+              </button>
+
+              <button id="sendReviewBtn" class="inline-flex items-center justify-center gap-2 rounded-full h-10 px-6 bg-surface-800 text-surface-50 text-sm font-bold tracking-wide hover:bg-surface-700 transition-colors" type="submit">
+                <span class="material-symbols-outlined"> send </span>
+                <span>Send for Review</span>
+              </button>
+            </div>
+            <!-- Upload Project Modal -->
+             <!-- Example trigger (place anywhere on page) -->
+              <button id="open-upload" class="px-4 py-2 bg-primary-500 text-surface-900 rounded-lg">
+                Open Upload
+              </button>
+
+              <div id="upload-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-black/60"></div>
+
+                <!-- Modal box -->
+                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+                  <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Upload Project</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+              <div class="mb-6">
+                <ul class="flex border-b border-surface-700">
+                  <li class="mr-1">
+                    <button id="tab-file" class="tab-button bg-surface-800 text-primary-400 inline-block py-2 px-4 rounded-t-lg font-medium border-b-2 border-primary-400">File Upload</button>
+                  </li>
+                  <li class="mr-1">
+                    <button id="tab-link" class="tab-button text-surface-400 inline-block py-2 px-4 rounded-t-lg font-medium hover:text-surface-50">Paste Link</button>
+                  </li>
+                </ul>
+              </div>
+              <!-- File Upload Form -->
+              <form id="file-upload-form" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-surface-300 mb-2">Select Files</label>
+                  <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-surface-700 rounded-lg cursor-pointer hover:border-primary-400 transition-colors">
+                      <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <span class="material-symbols-outlined text-surface-400 mb-2">cloud_upload</span>
+                        <p class="mb-2 text-sm text-surface-400">Click to upload or drag and drop</p>
+                        <p class="text-xs text-surface-500">PDF, ZIP (Max. 10MB)</p>
+                      </div>
+                      <input id="file-input" type="file" class="hidden" accept=".pdf,.zip" multiple />
+                    </label>
+                  </div>
+                  <div id="file-list" class="mt-2 text-sm text-surface-400 hidden">
+                    <p>Selected files:</p>
+                    <ul id="selected-files" class="list-disc list-inside mt-1"></ul>
+                  </div>
+                </div>
+                <div>
+                  <label for="project-name" class="block text-sm font-medium text-surface-300 mb-2">Project Name</label>
+                  <input type="text" id="project-name" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Enter project name">
+                </div>
+                <div>
+                  <label for="project-description" class="block text-sm font-medium text-surface-300 mb-2">Description (Optional)</label>
+                  <textarea id="project-description" rows="3" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Brief description of your project"></textarea>
+                </div>
+              </form>
+              <!-- Link Paste Form -->
+              <form id="link-upload-form" class="space-y-4 hidden">
+                <div>
+                  <label for="project-link" class="block text-sm font-medium text-surface-300 mb-2">Project URL</label>
+                  <input type="url" id="project-link" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://example.com/project" required>
+                </div>
+                <div>
+                  <label for="link-project-name" class="block text-sm font-medium text-surface-300 mb-2">Project Name</label>
+                  <input type="text" id="link-project-name" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Enter project name">
+                </div>
+                <div>
+                  <label for="link-project-description" class="block text-sm font-medium text-surface-300 mb-2">Description (Optional)</label>
+                  <textarea id="link-project-description" rows="3" class="w-full rounded-lg bg-surface-800 border border-surface-700 text-surface-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Brief description of your project"></textarea>
+                </div>
+              </form>
+              <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-upload" class="px-4 py-2 text-surface-300 hover:text-surface-50 rounded-lg">Cancel</button>
+                <button id="submit-upload" class="px-4 py-2 bg-primary-500 text-surface-900 font-medium rounded-lg hover:bg-primary-400 transition-colors">Upload Project</button>
+              </div>
+          </div>
+        </div>
+          </div>
+          <!-- Review History -->
+          <!-- <div>
+            <h3 class="text-xl font-bold tracking-tight text-surface-100 mb-4">Review History</h3>
+            <div class="overflow-x-auto rounded-xl border border-surface-800 bg-surface-800/50">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-surface-800">
+                  <tr>
+                    <th class="px-6 py-3 font-medium text-surface-300">Date</th>
+                    <th class="px-6 py-3 font-medium text-surface-300">Review Type</th>
+                    <th class="px-6 py-3 font-medium text-surface-300">Status</th>
+                    <th class="px-6 py-3 font-medium text-surface-300 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-800">
+                  <tr class="hover:bg-surface-800/70 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap text-surface-400">2023-12-20</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-surface-400">Peer Review</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400"> Pending </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <button class="font-medium text-primary-400 hover:text-primary-300 transition-colors">View Details</button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-800/70 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap text-surface-400">2023-11-05</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-surface-400">System Review</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400"> Completed </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <button class="font-medium text-primary-400 hover:text-primary-300 transition-colors">View Report</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div> -->
+
+          <div>
+  <h3 class="text-xl font-bold tracking-tight text-surface-100 mb-4">Review History</h3>
+  <div class="overflow-x-auto rounded-xl border border-surface-800 bg-surface-800/50">
+    <table id="review-history-table" class="w-full text-sm text-left">
+      <thead class="bg-surface-800">
+        <tr>
+          <th class="px-6 py-3 font-medium text-surface-300">Date</th>
+          <th class="px-6 py-3 font-medium text-surface-300">Review Type</th>
+          <th class="px-6 py-3 font-medium text-surface-300">Status</th>
+          <th class="px-6 py-3 font-medium text-surface-300 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-surface-800">
+        <!-- This will be populated dynamically -->
+        <tr>
+          <td colspan="4" class="px-6 py-4 text-center text-surface-400">
+            Loading your review history...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
+
+
+        </div>
+        <!-- Right column -->
+        <!-- <aside class="w-full lg:w-80 xl:w-96 flex-shrink-0 bg-surface-800/50 rounded-xl p-6 space-y-6 self-start">
+          <div class="text-center">
+            <span class="material-symbols-outlined text-5xl text-primary-500"> auto_awesome </span>
+            <h3 class="text-xl font-bold tracking-tight text-surface-50 mt-2">System Review</h3>
+            <p class="text-sm text-surface-400 mt-1">Get instant feedback on your project with our automated review system. This review covers basic checks and provides initial insights.</p>
+          </div>
+          <button class="w-full inline-flex items-center justify-center gap-2 rounded-full h-12 px-6 bg-primary-500 text-surface-900 text-base font-bold tracking-wide hover:bg-primary-600 transition-colors">
+            <span>Start System Review</span>
+          </button>
+        </aside> -->
+      </main>
+    </div>
+  </div>
+
+  <!-- Attach JS -->
+  <!-- <script type="module" src="../src/index.js"></script> -->
+  <script src="../src/index.js" defer></script>
+</body>
+</html>
