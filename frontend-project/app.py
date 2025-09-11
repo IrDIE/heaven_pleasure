@@ -655,21 +655,6 @@ def _merge_per_file(*dicts: dict[str, list[dict]]) -> dict[str, list[dict]]:
             merged.setdefault(rel, []).extend(items)
     return merged
 
-def llm_simulator(data):
-    """
-    Заглушка: просто читает data/autoreview.json и возвращает его содержимое.
-    """
-    time.sleep(10)
-    src = DATA_DIR / "autoreview.json"
-    try:
-        with src.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"[llm_simulator] не удалось прочитать {src}: {e}")
-        # безопасный минимум
-        return {"issues": [], "meta": {"overall": "", "highlights": []}}
-
-
 
 def _find_latest_project(username: Optional[str] = None) -> Optional[Path]:
     """
@@ -728,7 +713,6 @@ def _run_linters_for_user(username: Optional[str]) -> dict:
             subprocess.run(['git', 'clone', git_url, repo_dir], check=True, capture_output=True)
         else:
             raise ValueError("Неподдерживаемый формат проекта")
-
         issues, _ = analyze_repository(str(repo_dir), keep=False, verbose=False)
 
         with open(LINTERS_JSON, "w", encoding="utf-8") as f:
