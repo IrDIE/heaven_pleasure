@@ -226,107 +226,90 @@ class CodeReviewManager:
             """,
             llm_config=llm_config_base
         )
+                
+        # Агент тестирования
         self.tester_agent = ConversableAgent(
             name="Тестировщик",
             system_message="""
-        Вы — эксперт по тестированию ПО на любых языках. Ваша задача — сгенерировать автотесты и краткое резюме покрытия.
+            Вы — эксперт по тестированию кода. Ваша задача — сгенерировать unit-тесты и предоставить краткое резюме покрытия.
 
-        СТРОГИЕ ПРАВИЛА:
-        - НЕ исправляйте и НЕ оценивайте код студента.
-        - Никаких советов/рекомендаций — только тесты и краткое резюме.
-        - НИКАКИХ сетевых запросов или внешних сервисов.
-        - Тесты должны быть самодостаточными и запускаться стандартным инструментом для целевого языка/стека.
-        - Для Python: все импорты тестируемого кода — только внутри тестовых функций.
-        - Для других языков: аналогично — подключения модулей/пакетов/юнитов делайте внутри конкретных тест-кейсов.
-        - Если нет нужного раннера/SDK/зависимости — помечайте тест как SKIPPED/IGNORED (механизмом данного фреймворка).
+            СТРОГИЕ ПРАВИЛА:
+            - НЕ исправляйте и НЕ оценивайте код студента
+            - НЕ включайте исправленный код студента - только тесты
+            - ВСЕ ИМПОРТЫ ИЗ ТЕСТИРУЕМОГО МОДУЛЯ — ТОЛЬКО ВНУТРИ ТЕСТОВЫХ ФУНКЦИЙ
+            - ПРОВЕРЯЙТЕ ЗАВИСИМОСТИ: try: importlib.import_module(dep) except Exception: pytest.skip(f"Отсутствует зависимость: {dep}")
+            - НИКАКИХ сетевых запросов или внешних вызовов
+            - Если зависимость отсутствует — тест помечается как SKIPPED
 
-        ФУНКЦИИ:
-        - Создание автотестов для всех публичных функций/методов/API (насколько это возможно).
-        - Тестирование нормальных сценариев, граничных случаев и некорректных входов.
-        - Локальные подключения тестируемых модулей внутри каждого теста.
-        - Самодостаточные тесты под типичный раннер языка:
-        - Python → pytest
-        - JavaScript/TypeScript → Jest (или Vitest)
-        - Go → go test
-        - Java/Kotlin → JUnit (Gradle/Maven)
-        - C/C++ → CTest/GoogleTest (CMake)
-        - Rust → cargo test
-        - C# → dotnet test (xUnit/NUnit)
+            ФУНКЦИИ:
+            - Создание unit-тестов для всех публичных функций/методов
+            - Тестирование граничных случаев и некорректных входов
+            - Локальные импорты внутри каждого теста
+            - Самодостаточные тесты для pytest
 
-        Если стек явно угадывается из файлов/структуры — используйте соответствующий раннер. Иначе выберите наиболее типичный.
+            ОБЯЗАТЕЛЬНЫЙ ФОРМАТ JSON:
+            {
+                "agent": "tester",
+                "role": "tester",
+                "archive": null,
+                "root": null,
+                "summary": {
+                    "issue_counts": { "major": 0, "minor": 0 },
+                    "highlights": [
+                        "Создано X тестов для Y функций",
+                        "Покрыты граничные случаи для функции Z",
+                        "Добавлены тесты на обработку ошибок",
+                        "Протестированы основные сценарии использования"
+                    ]
+                },
+                "issues": [],
+                "test_code": "# ПОЛНЫЙ КОД ТЕСТОВ\nimport pytest\nimport importlib\n\n# Ваши тесты здесь..."
+            }
 
-        ПРОВЕРКА ЗАВИСИМОСТЕЙ:
-        - В начале каждого теста выполняйте проверку критичных зависимостей и инструмента тестирования.
-        - Если зависимость/инструмент недоступны — корректно пометьте тест как SKIPPED/IGNORED с сообщением вида:
-        - Python (pytest): pytest.skip("Отсутствует зависимость: <dep>")
-        - Jest: test.skip("Отсутствует зависимость: <dep>", () => {})
-        - Go: t.Skip("Отсутствует зависимость: <dep>")
-        - JUnit: Assumptions.assumeTrue(false, "Отсутствует зависимость: <dep>")
-        и т.д. — по канонам выбранного фреймворка.
+            ГЕНЕРАЦИЯ HIGHLIGHTS:
+            Создайте 3-5 кратких описаний того, что покрывают тесты:
+            - Количество созданных тестов и протестированных функций
+            - Какие типы тестов добавлены (граничные случаи, ошибки, нормальные сценарии)
+            - Особые случаи тестирования (если есть)
+            - Общий охват функциональности
 
-        ГЕНЕРАЦИЯ ТЕСТОВ:
-        1) Определите тестируемые публичные сущности (функции/методы/эндпоинты/CLI).
-        2) Для каждой — сделайте набор тестов: нормальные случаи, границы, ошибки/исключения.
-        3) Все подключения тестируемого кода — внутри конкретных тестов.
-        4) Запрет на глобальные хелперы, которые мутируют код студента. Можно создавать только тестовые фикстуры/данные.
-        5) Если нужен дополнительный файл (конфиг, фикстуры, package.json, Cargo.toml, CMakeLists.txt и т.п.) — добавьте его в поле "archive".
+            ПРОЦЕСС:
+            1. Определите все тестируемые публичные функции/методы
+            2. Для каждой создайте тесты: нормальные случаи, граничные, ошибки
+            3. В каждом тесте: проверка зависимостей → локальный импорт → тесты
+            4. Сформируйте highlights с описанием покрытия
+            5. Поместите весь код в поле test_code
 
-        ОБЯЗАТЕЛЬНЫЙ ВЫХОД (ТОЛЬКО валидный JSON, без markdown):
-        {
-        "agent": "tester",
-        "role": "tester",
-        "archive": null | [
-            {"path": "tests/test_sample.py", "content": "<полный текст>"},
-            {"path": "jest.config.js", "content": "<полный текст>"},
-            {"path": "Cargo.toml", "content": "<полный текст>"}
-        ],
-        "root": null,
-        "summary": {
-            "issue_counts": {"major": 0, "minor": 0},
-            "highlights": [
-            "Создано X тестов для Y сущностей",
-            "Покрыты граничные случаи для Z",
-            "Добавлены проверки ошибок/исключений",
-            "Протестированы основные сценарии использования"
-            ]
-        },
-        "issues": [],
-        "test_code": "<ПОЛНЫЙ КОД/СКРИПТ ОСНОВНОГО ТЕСТОВОГО ФАЙЛА ДЛЯ ВЫБРАННОГО РАННЕРА>"
-        }
+            СТРУКТУРА ТЕСТОВ:
+            ```python
+            import pytest
+            import importlib
 
-        ТРЕБОВАНИЯ:
-        - Всегда заполняйте "test_code" полным содержимым основного файла тестов (например: tests/test_all.py, tests/main.test.ts, *_test.go, src/test/java/.../AllTests.java).
-        - Если нужны доп. файлы — положите их в "archive" (список объектов {path, content}). Пути относительные, совместимые с типичным запуском.
-        - "issues" — всегда пустой массив.
-        - "highlights" — 3–5 коротких пунктов, отражающих покрытие.
+            def test_function_name_normal_case():
+                # Проверка зависимостей
+                try:
+                    importlib.import_module('required_module')
+                except ImportError:
+                    pytest.skip("Отсутствует зависимость: required_module")
+                
+                # Локальный импорт
+                from student_code import function_name
+                
+                # Тесты
+                assert function_name(input) == expected_output
+            ```
 
-        ПРИМЕР СТРУКТУРЫ (концептуально):
-        - Python/pytest:
-        - test_code: полный tests/test_all.py
-        - archive (опц.): pytest.ini, conftest.py
-        - JS/Jest:
-        - test_code: полный tests/main.test.ts
-        - archive (опц.): package.json (scripts.test="jest"), jest.config.js
-        - Go:
-        - test_code: полный pkg/thing/thing_test.go
-        - archive (опц.): go.mod
-        - Java/JUnit:
-        - test_code: полный src/test/java/.../AllTests.java (или отдельный класс)
-        - archive (опц.): build.gradle / pom.xml (с подключённым junit)
+            ЗАПРЕЩЕНО:
+            - Любые issues, советы, оценки, рекомендации
+            - Исправления кода студента
+            - Глобальные импорты тестируемого кода
 
-        ЗАПРЕЩЕНО:
-        - Любые правки/оценки кода студента.
-        - Сетевые вызовы.
-        - Глобальные импорты/линковка тестируемого кода (делайте это внутри конкретных тестов).
-
-        ФОРМАТ HIGHLIGHTS:
-        - Кол-во тестов и протестированных сущностей.
-        - Какие типы тестов добавлены (границы, ошибки, happy-path).
-        - Особые сценарии (параметризация, property-based, таблиц. тесты — если применимо).
-        - Краткий вывод об охвате.
-
-        Выводите ТОЛЬКО валидный JSON по указанной схеме.
-        """,
+            Требования к выводу:
+            - ТОЛЬКО валидный JSON без markdown оформления
+            - Обязательные highlights с описанием тестового покрытия
+            - Полный код тестов в поле test_code
+            - issues всегда пустой массив
+            """,
             llm_config=llm_config_code
         )
 
@@ -396,24 +379,62 @@ class CodeReviewManager:
             default_auto_reply="",
         )
         
-    
-    def _invoke_agent(self, agent: ConversableAgent, prompt: str, max_retries: int = None, *, expected_kind: str, filename: str = "student_code.py") -> dict:
+
+    def _is_valid_payload(self, expected_kind: str, data: dict) -> bool:
+        """Минимальная структурная проверка ответа агента."""
+        if not isinstance(data, dict):
+            return False
+        # Любой JSON с ключом "error" — считаем отказом/невалидным
+        if "error" in data:
+            return False
+
+        if expected_kind == "architecture":
+            req = ("agent", "role", "name", "overall", "positives", "issues")
+            return all(k in data for k in req) and isinstance(data.get("issues"), list)
+        if expected_kind == "quality":
+            req = ("agent", "role", "name", "overall", "issues")
+            return all(k in data for k in req) and isinstance(data.get("issues"), list)
+        if expected_kind == "tester":
+            req = ("agent", "role", "summary", "issues", "test_code")
+            return (all(k in data for k in req)
+                    and isinstance(data.get("summary"), dict)
+                    and isinstance(data.get("issues"), list))
+        return False
+
+        
+    def _invoke_agent(
+        self,
+        agent: ConversableAgent,
+        prompt: str,
+        max_retries: int = None,
+        *,
+        expected_kind: str,
+        filename: str = "student_code.py"
+    ) -> dict:
         if max_retries is None:
             max_retries = self.config.MAX_REVIEW_RETRIES
         agent.reset()
-
         def _need_fallback(msg: str) -> Optional[str]:
             if not msg:
                 return "empty response"
-            m = re.search(r"(cannot\s+review|can[’']?t\s+review|не\s+могу\s+(проанализировать|оценить)|unsupported|not\s+supported)", msg, re.IGNORECASE)
-            if m:
+            # Явные текстовые отказы
+            if re.search(r"(cannot\s+review|can[’']?t\s+review|не\s+могу\s+(проанализировать|оценить)|unsupported|not\s+supported)",
+                        msg, re.IGNORECASE):
                 return msg.strip()[:500]
+            # JSON с ключом error
+            try:
+                j = self._extract_json(msg)
+                if isinstance(j, dict) and "error" in j:
+                    return str(j.get("error") or "error field in JSON")[:500]
+            except Exception:
+                pass
             return None
 
         for attempt in range(max_retries):
             logger.info(f"Вызов {agent.name}, попытка {attempt + 1}/{max_retries}")
             temp_user_proxy = self._create_fresh_user_proxy()
             last_message = ""
+
             try:
                 if attempt > 0:
                     time.sleep(1)
@@ -437,29 +458,29 @@ class CodeReviewManager:
                     logger.error(f"Fallback also failed for {agent.name}: {fallback_error}")
                     last_message = ""
 
-            # токены/лог
+            # учёт токенов/лог
             self.token_tracker.track_agent_call(agent_name=agent.name, input_text=prompt, output_text=last_message)
             self.logger._write_raw(f"\n=== OUTPUT <- {agent.name} ===\n{last_message}\n")
 
-            # 1) если явное "не могу" — сразу структурный fallback
+            # 1) Явный отказ → фолбэк
             fb_reason = _need_fallback(last_message)
             if fb_reason:
-                logger.info(f"{agent.name}: unsupported -> fallback")
+                logger.info(f"{agent.name}: unsupported/error -> fallback")
                 return self._fallback_payload(expected_kind, filename, fb_reason)
 
-            # 2) попытка вытащить JSON
+            # 2) Пытаемся вытащить JSON и проверить форму
             if last_message:
                 json_data = self._extract_json(last_message)
-                if json_data:
+                if json_data and self._is_valid_payload(expected_kind, json_data):
                     return json_data
-                logger.warning(f"No valid JSON from {agent.name}")
+                logger.warning(f"No valid '{expected_kind}' JSON shape from {agent.name}")
 
-            # 3) ретрай с ужесточением
+            # 3) Ретрай с ужесточением
             if attempt < max_retries - 1:
                 prompt = f"ВЕРНИТЕ ТОЛЬКО JSON!\n{prompt}"
                 time.sleep(2)
 
-        # 4) окончательный структурный fallback
+        # 4) Окончательный фолбэк
         logger.error(f"{agent.name}: returning fallback after {max_retries} attempts")
         return self._fallback_payload(expected_kind, filename, "no valid JSON")
 
@@ -587,73 +608,64 @@ class CodeReviewManager:
             run_tests: bool = True,
             repo_dir: Optional[str] = None,
         ) -> ReviewResults:
-        """Основной метод code review с улучшенной изоляцией агентов."""
+        """Основной метод code review с устойчивыми фолбэками."""
         logger.info("Начало code review")
         self.logger.log_phase_start("Code Review", 1)
-        
+
         # Save code
         self._save_code(code, filename, repo_dir)
-        
+
         # Initialize results
         results = ReviewResults(filename=filename)
-        
-        # Base prompt for all agents
+
+        # Base prompt
         base_prompt = f"""
         Проанализируйте следующий код и верните результат в требуемом JSON формате.
-        
+
         Файл: {filename}
-        
+
         КОД:
         ```
         {code}
         ```
-        
+
         ВЕРНИТЕ ТОЛЬКО JSON В ВАШЕМ ФОРМАТЕ!
         """
-        
-        # 1. Architecture review
-        logger.info("=" * 50)
-        logger.info("Запуск архитектурного анализа")
-        logger.info("=" * 50)
-        
+
+        # 1. Architecture
+        logger.info("=" * 50); logger.info("Запуск архитектурного анализа"); logger.info("=" * 50)
         arch_json = self._invoke_agent(self.architecture_reviewer, base_prompt, expected_kind="architecture", filename=filename)
         if arch_json:
             try:
                 results.architecture_review = ArchitectureReviewResult(**arch_json)
                 self.logger.log_agent_action("АрхитекторРевьюер", "Анализ завершен", "Успешно")
             except ValidationError as e:
-                logger.error(f"Ошибка валидации архитектурного review: {e}")
                 self.logger.log_error("АрхитекторРевьюер", str(e))
-        
-        # 2. Quality review
-        logger.info("=" * 50)
-        logger.info("Запуск анализа качества")
-        logger.info("=" * 50)
-        
+                fb = self._fallback_payload("architecture", filename, f"validation_error: {e.errors()[:1]}")
+                results.architecture_review = ArchitectureReviewResult(**fb)
+
+        # 2. Quality
+        logger.info("=" * 50); logger.info("Запуск анализа качества"); logger.info("=" * 50)
         quality_json = self._invoke_agent(self.quality_reviewer, base_prompt, expected_kind="quality", filename=filename)
         if quality_json:
             try:
                 results.quality_review = QualityReviewResult(**quality_json)
                 self.logger.log_agent_action("КачествоРевьюер", "Анализ завершен", "Успешно")
             except ValidationError as e:
-                logger.error(f"Ошибка валидации quality review: {e}")
                 self.logger.log_error("КачествоРевьюер", str(e))
-        
-        # 3. Testing
-        logger.info("=" * 50)
-        logger.info("Запуск тестирования")
-        logger.info("=" * 50)
-        
+                fb = self._fallback_payload("quality", filename, f"validation_error: {e.errors()[:1]}")
+                results.quality_review = QualityReviewResult(**fb)
+
+        # 3. Tester
+        logger.info("=" * 50); logger.info("Запуск тестирования"); logger.info("=" * 50)
         test_json = self._invoke_agent(self.tester_agent, base_prompt, expected_kind="tester", filename=filename)
         if test_json:
             try:
                 results.testing_results = TesterResult(**test_json)
                 self.logger.log_agent_action("Тестировщик", "Анализ завершен", "Успешно")
-
                 if run_tests and self.config.ENABLE_TEST_EXECUTION:
                     raw_code = getattr(results.testing_results, "test_code", None)
-                    lang_hint = None  # агент может положить это в test_json.get("runner", {}).get("language")
-                    # для Python санитайзим, для остальных — как есть
+                    lang_hint = None
                     safe_code = (self._sanitize_test_code(raw_code, filename)
                                 if raw_code and (lang_hint == "python" or filename.endswith(".py"))
                                 else (raw_code or ""))
@@ -665,40 +677,50 @@ class CodeReviewManager:
                     )
                     results.test_execution = test_exec_results
 
-                # убираем тестовый код из итогового JSON
+                # Убираем тестовый код из итогового JSON
                 results.testing_results.test_code = None
-                    
+
             except ValidationError as e:
-                logger.error(f"Ошибка валидации testing review: {e}")
                 self.logger.log_error("Тестировщик", str(e))
-        
-        # End session
+                fb = self._fallback_payload("tester", filename, f"validation_error: {e.errors()[:1]}")
+                # Приводим к ожидаемой схеме TesterResult
+                # (если в _fallback_payload у тебя archive=[], тоже норм)
+                if fb.get("archive", None) is False:
+                    fb["archive"] = None
+                results.testing_results = TesterResult(**fb)
+
+        # Закрытие лог-сессий
         self.logger.log_session_end()
         self.token_tracker.log_session_summary()
-        
+
+        # root_dir для сводного JSON
         root_dir = None
-        
         if repo_dir:
             try:
                 root_dir = os.path.basename(os.path.abspath(repo_dir))
             except Exception:
                 root_dir = None
 
+        # Сборка плоского autoreview
+        arch_json_safe = arch_json or {}
+        quality_json_safe = quality_json or {}
+        test_json_safe = test_json or {}
+
         autoreview = self._to_autoreview(
             filename=filename,
-            arch=arch_json or {},
-            quality=quality_json or {},
-            tester=test_json or {},
-            archive_name=None,      # сюда можешь подставить имя zip, если знаешь
+            arch=arch_json_safe,
+            quality=quality_json_safe,
+            tester=test_json_safe,
+            archive_name=None,
             root_dir=root_dir,
         )
 
-        # Завершаем сессию логов/токенов как раньше
+        # Дублирующее закрытие логов (как было у тебя) — оставим для совместимости
         self.logger.log_session_end()
         self.token_tracker.log_session_summary()
 
-        # Возвращаем ПЛОСКИЙ dict вместо Pydantic
         return autoreview
+
         
     def _fallback_payload(self, kind: str, filename: str, reason: str) -> dict:
         reason = (reason or "Unsupported or unrecognized content").strip()
@@ -756,145 +778,156 @@ class CodeReviewManager:
         repo_dir: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Универсальный запуск тестов.
-        - Записывает archive (если есть).
-        - Определяет стек/раннер по archive/имёнам/содержимому.
-        - Если агент дал явную команду — используем её.
-        - Если запуск не возможен — помечаем skipped.
+        Python + pytest only.
+        Возвращает подробности запуска: started, collected, passed, failed, errors, skipped, output_tail.
+        Полный вывод сохраняется в tests/_last_run.log.
         """
+        import os, re, shlex
+        from pathlib import Path
+
+        def _parse_summary(txt: str) -> Dict[str, int]:
+            # Ищем строки вида: "collected 3 items", и итог: "3 passed, 1 skipped, 1 failed in 0.12s"
+            res = {"collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped": 0}
+            m = re.search(r"\bcollected\s+(\d+)\s+items?", txt)
+            if m:
+                res["collected"] = int(m.group(1))
+            # pytest итоговая строка: "... X passed, Y failed, Z skipped, W errors ..."
+            for key, pat in {
+                "passed": r"(\d+)\s+passed",
+                "failed": r"(\d+)\s+failed",
+                "errors": r"(\d+)\s+errors?",
+                "skipped": r"(\d+)\s+skipped",
+            }.items():
+                m = re.search(pat, txt)
+                if m:
+                    res[key] = int(m.group(1))
+            return res
+
         base_dir = repo_dir or self.config.WORKSPACE_DIR
         os.makedirs(base_dir, exist_ok=True)
 
-        # 1) Записать archive
-        created_files = []
-        archive = test_result_json.get("archive") or []
-        for item in archive:
+        # 1) Записать архив (если агент прислал вспомогательные файлы)
+        for item in (test_result_json.get("archive") or []):
             try:
-                rel_path = os.path.normpath(item.get("path", "")).lstrip(os.sep)
+                rel_path_raw = str(item.get("path", ""))
+                rel_path = os.path.normpath(rel_path_raw).lstrip(os.sep)
                 if not rel_path or ".." in rel_path.split(os.sep):
                     continue
                 dst = os.path.join(base_dir, rel_path)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 with open(dst, "w", encoding="utf-8") as f:
                     f.write(item.get("content", ""))
-                created_files.append(dst)
             except Exception as e:
                 logger.warning(f"Не удалось записать архивный файл {item.get('path')}: {e}")
 
-        # 2) Определить язык/раннер
-        def _has(*names: str) -> bool:
-            return any(os.path.exists(os.path.join(base_dir, n)) for n in names)
+        # 2) Сохранить тесты (если есть код)
+        test_path: Optional[str] = None
+        tests_dir = os.path.join(base_dir, "tests")
+        os.makedirs(tests_dir, exist_ok=True)
 
-        def _any_ext(patterns) -> bool:
-            for root, _, files in os.walk(base_dir):
-                for fn in files:
-                    if any(fn.endswith(ext) for ext in patterns):
-                        return True
-            return False
-
-        # если агент прислал runner.command — используем его
-        runner_cfg = (test_result_json.get("runner") or {}) if isinstance(test_result_json, dict) else {}
-        cmd = (runner_cfg.get("command") or "").strip()
-        language_hint = (runner_cfg.get("language") or "").strip().lower()
-
-        # 3) Сохранить основной тестовый файл (если есть)
-        test_path = None
         if test_code:
-            # Выбор пути по подсказке/детекции
-            if language_hint == "python" or main_filename.endswith(".py"):
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                test_filename = f"test_{os.path.basename(main_filename)}"
-                test_path = os.path.join(tests_dir, test_filename)
-            elif language_hint in ("javascript", "typescript") or _any_ext((".js", ".mjs", ".cjs", ".ts", ".tsx")):
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                ext = ".test.ts" if _any_ext((".ts", ".tsx")) else ".test.js"
-                test_path = os.path.join(tests_dir, f"main{ext}")
-            elif language_hint == "go" or _any_ext((".go",)):
-                # в Go имя файла должно заканчиваться на _test.go
-                pkg_dir = base_dir
-                test_path = os.path.join(pkg_dir, "autogen_test.go")
-            elif language_hint in ("java", "kotlin") or _has("pom.xml", "build.gradle", "build.gradle.kts"):
-                test_root = os.path.join(base_dir, "src", "test", "java")
-                os.makedirs(test_root, exist_ok=True)
-                test_path = os.path.join(test_root, "AutogenTests.java")
-            elif language_hint == "rust" or _has("Cargo.toml"):
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                test_path = os.path.join(tests_dir, "autogen_tests.rs")
-            elif language_hint in ("c#", "dotnet") or _any_ext((".csproj",)):
-                test_root = os.path.join(base_dir, "Tests")
-                os.makedirs(test_root, exist_ok=True)
-                test_path = os.path.join(test_root, "AutogenTests.cs")
-            else:
-                # дефолт — pytest
-                tests_dir = os.path.join(base_dir, "tests")
-                os.makedirs(tests_dir, exist_ok=True)
-                test_filename = f"test_{os.path.basename(main_filename)}"
-                test_path = os.path.join(tests_dir, test_filename)
+            try:
+                stem = Path(Path(main_filename).name or "student_code.py").stem or "student_code"
+                test_path = os.path.join(tests_dir, f"test_{stem}.py")
+                with open(test_path, "w", encoding="utf-8") as f:
+                    f.write(test_code)
+                logger.info(f"Тесты сохранены: {test_path}")
+            except Exception as write_err:
+                reason = f"cannot_write_tests: {write_err.__class__.__name__}: {write_err}"
+                logger.warning(f"Тесты пропущены: {reason}")
+                return {
+                    "started": False,
+                    "success": True,
+                    "status": "SKIPPED",
+                    "skipped": True,
+                    "reason": reason,
+                    "command": None,
+                    "exit_code": 0,
+                    "output": "",
+                    "output_tail": "",
+                    "test_file": None,
+                    "collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped_count": 0,
+                }
 
-            with open(test_path, "w", encoding="utf-8") as f:
-                f.write(test_code)
-            created_files.append(test_path)
-            logger.info(f"Тесты сохранены: {test_path}")
+        # 3) Нет ни одного тестового файла → SKIPPED
+        has_tests = any(fn.startswith("test_") and fn.endswith(".py") for fn in os.listdir(tests_dir))
+        if not has_tests:
+            reason = "no_tests_available"
+            logger.info("Нет тестов для запуска: SKIPPED")
+            return {
+                "started": False,
+                "success": True,
+                "status": "SKIPPED",
+                "skipped": True,
+                "reason": reason,
+                "command": None,
+                "exit_code": 0,
+                "output": "",
+                "output_tail": "",
+                "test_file": None,
+                "collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped_count": 0,
+            }
 
-        # 4) Если команда не задана агентом — подбираем
-        if not cmd:
-            if language_hint == "python" or (test_path and test_path.endswith(".py")):
-                cmd = f"python -m pytest {test_path if test_path else 'tests'} -q -q --maxfail=1 --disable-warnings"
-            elif language_hint in ("javascript", "typescript") or _has("package.json"):
-                # предпочитаем jest, иначе node --test (Node>=18)
-                if _has("node_modules/.bin/jest") or '"jest"' in open(os.path.join(base_dir, "package.json"), "r", encoding="utf-8").read() if _has("package.json") else False:
-                    cmd = "npx jest --runInBand"
-                else:
-                    # node встроенный тест-раннер
-                    target = test_path or "tests"
-                    cmd = f"node --test {target}"
-            elif language_hint == "go" or _any_ext((".go",)):
-                cmd = "go test ./..."
-            elif language_hint in ("java", "kotlin") or _has("pom.xml"):
-                cmd = "mvn -q -e -DskipITs test"
-            elif _has("build.gradle", "build.gradle.kts"):
-                cmd = "gradle test || ./gradlew test"
-            elif language_hint == "rust" or _has("Cargo.toml"):
-                cmd = "cargo test"
-            elif language_hint in ("c#", "dotnet") or _any_ext((".csproj",)):
-                cmd = "dotnet test --nologo"
-            else:
-                # fallback — pytest
-                target = test_path if (test_path and test_path.endswith(".py")) else "tests"
-                cmd = f"python -m pytest {target} -q -q --maxfail=1 --disable-warnings"
+        # 4) Команда pytest: показываем отчёт и выводим print-ы
+        target = test_path if (test_path and test_path.endswith(".py")) else "tests"
+        # без -q -q; включаем -rA (все отчёты) и -s (не глушить stdout)
+        cmd = f"python -m pytest {shlex.quote(target)} -rA -s --maxfail=1 --disable-warnings"
+        shell = f"cd {shlex.quote(base_dir)} && {cmd}"
+        logger.info(f"Pytest command: {cmd}")
 
-        # 5) Запустить
+        # 5) Запуск
+        log_path = os.path.join(tests_dir, "_last_run.log")
         try:
-            exit_code, output = self.user_proxy.execute_code_blocks([("sh", cmd)], work_dir=base_dir)
-            # Успех: код 0 → прошли, >0 → упали
+            exit_code, output = self.user_proxy.execute_code_blocks([("sh", shell)])
+            # Сохраняем полный вывод на диск
+            try:
+                with open(log_path, "w", encoding="utf-8") as lf:
+                    lf.write(output or "")
+            except Exception as e:
+                logger.warning(f"Не удалось сохранить лог pytest: {e}")
+
+            # Разбор и статус
+            summary = _parse_summary(output or "")
             success = (exit_code == 0)
             status = "PASSED" if success else "FAILED"
+            tail_lines = "\n".join((output or "").splitlines()[-50:])  # хвост для логов
+
+            # Лог — видимый хвост
+            logger.info("Pytest output (tail):\n" + (tail_lines or "<empty>"))
+
             return {
+                "started": True,
                 "success": success,
                 "status": status,
                 "exit_code": exit_code,
                 "output": output,
+                "output_tail": tail_lines,
                 "command": cmd,
                 "test_file": os.path.relpath(test_path, base_dir) if test_path else None,
+                "collected": summary["collected"],
+                "passed": summary["passed"],
+                "failed": summary["failed"],
+                "errors": summary["errors"],
+                "skipped_count": summary["skipped"],
+                "log_file": os.path.relpath(log_path, base_dir),
             }
-        except Exception as e:
-            # Невозможно запустить раннер → считаем SKIPPED (как просили)
-            reason = f"runner_unavailable: {e.__class__.__name__}: {e}"
+        except Exception as run_err:
+            reason = f"runner_unavailable: {run_err.__class__.__name__}: {run_err}"
             logger.warning(f"Тесты пропущены: {reason}")
             return {
+                "started": False,
                 "success": True,          # не валим пайплайн
                 "status": "SKIPPED",
                 "skipped": True,
                 "reason": reason,
-                "command": cmd or None,
+                "command": cmd,
                 "exit_code": 0,
                 "output": "",
+                "output_tail": "",
                 "test_file": os.path.relpath(test_path, base_dir) if test_path else None,
+                "collected": 0, "passed": 0, "failed": 0, "errors": 0, "skipped_count": 0,
+                "log_file": os.path.relpath(log_path, base_dir),
             }
-
 
     
     def _save_results(self, results: ReviewResults):

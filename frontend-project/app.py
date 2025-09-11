@@ -72,10 +72,6 @@ from src.llm.multiagent import get_reviewer_singleton
 LINTERS_JSON = DATA_DIR / "linters.json"
 MULTIAGENT_JSON = DATA_DIR / "multiagent.json"
 
-REVIEWER = get_reviewer_singleton(
-    WORKSPACE_DIR=str(DATA_DIR / "workspace"),
-)
-
 # Create directories and files
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 if not LINTERS_JSON.exists():
@@ -111,6 +107,43 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE
 users = {"t": {"password": "t", "name": "Test User"}}
 
 htmls_path = "./public/"
+
+def _latest_upload_root(username: Optional[str]) -> Path:
+    """
+    Возвращает uploads/<username>/<timestamp> для самого свежего .zip/.pdf.
+    Бросает FileNotFoundError, если ничего нет.
+    """
+    z = _find_latest_zip(username=username)
+    if not z:
+        raise FileNotFoundError("В uploads/ не найден zip для пользователя")
+    return z.parent  # <- это и есть uploads/<user>/<ts>
+
+def _path_linters_json(username: Optional[str]) -> Path:
+    return _latest_upload_root(username) / "linters.json"
+
+def _path_multiagent_json(username: Optional[str]) -> Path:
+    return _latest_upload_root(username) / "multiagent.json"
+
+def _path_workspace_dir(username: Optional[str]) -> Path:
+    p = _latest_upload_root(username) / "workspace"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+def _path_report_file(username: Optional[str], project_id: Optional[int]) -> Path:
+    root = _latest_upload_root(username)
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    return root / f"review_{project_id or 'latest'}_{ts}.html"
+
+
+_REVIEWERS_BY_ROOT: dict[str, object] = {}
+
+def _reviewer_for(username: Optional[str]):
+    root = str(_path_workspace_dir(username))  # уникален для каждой загрузки
+    if root not in _REVIEWERS_BY_ROOT:
+        _REVIEWERS_BY_ROOT[root] = get_reviewer_singleton(WORKSPACE_DIR=root)
+    return _REVIEWERS_BY_ROOT[root]
+
+
 
 
 # Database initialization
@@ -715,12 +748,14 @@ def _run_linters_for_user(username: Optional[str]) -> dict:
             raise ValueError("Неподдерживаемый формат проекта")
         issues, _ = analyze_repository(str(repo_dir), keep=False, verbose=False)
 
-        with open(LINTERS_JSON, "w", encoding="utf-8") as f:
+        out_path = _path_linters_json(username)
+        with out_path.open("w", encoding="utf-8") as f:
             json.dump(issues, f, ensure_ascii=False, indent=2)
 
-        return {"linters_count": len(issues), "linters_json": str(LINTERS_JSON)}
+        return {"linters_count": len(issues), "linters_json": str(out_path)}
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
 
 
 def _extract_repo_to_tmp_for_user(
@@ -742,12 +777,15 @@ def _extract_repo_to_tmp_for_user(
 
     bad_dirs = (
         "__pycache__/", ".venv/", "venv/", "node_modules/", ".mypy_cache/",
-        ".pytest_cache/", ".git/", "dist/", "build/", "target/", "out/"
+        ".pytest_cache/", ".git/", "dist/", "build/", "target/", "out/", "tests/"
     )
     binary_exts = {
         ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".exe", ".dll", ".so", ".dylib",
         ".zip", ".tar", ".gz", ".rar", ".7z", ".mp4", ".mp3", ".woff", ".woff2",
-        ".otf", ".ttf", ".svg", ".yaml"
+        ".otf", ".ttf", ".svg", ".yaml", ".flake8", ".md", ".ini", ".ico"
+    }
+    banned_files = {
+        ".gitignore", ".flake8"
     }
     
     # Добавьте исключение для Git служебных файлов
@@ -786,6 +824,8 @@ def _extract_repo_to_tmp_for_user(
     # Собрать список файлов, исключая служебные
     files: list[Path] = []
     for p in repo_dir.rglob("*"):
+        if p in banned_files:
+            continue
         if not p.is_file():
             continue
         if p.suffix.lower() in binary_exts:
@@ -806,7 +846,7 @@ def llm_analyze_repo_per_file(
     *,
     out_path: Path = MULTIAGENT_JSON,
     limit: int = 100,
-    run_tests: bool = False
+    run_tests: bool = True
 ) -> dict:
     """
     Гоняет REVIEWER по файлам, агрегирует результаты в ОДИН общий dict 'autoreview'
@@ -820,6 +860,7 @@ def llm_analyze_repo_per_file(
         archive_name = None
 
     tmp_dir, repo_dir, files = _extract_repo_to_tmp_for_user(username, limit)
+    reviewer = _reviewer_for(username)
 
     # хелперы
     def top_level_dir(relpath: str) -> Optional[str]:
@@ -840,7 +881,6 @@ def llm_analyze_repo_per_file(
     agg_highlights: list[str] = []
     overall_parts: list[str] = []
     roots: list[str] = []
-
     try:
         for path in files:
             rel = path.relative_to(repo_dir).as_posix()
@@ -858,7 +898,7 @@ def llm_analyze_repo_per_file(
 
             # ревью
             try:
-                review = REVIEWER.review_code(
+                review = reviewer.review_code(
                     code=code_text,
                     filename=path.name,
                     run_tests=run_tests,
@@ -880,65 +920,60 @@ def llm_analyze_repo_per_file(
             agg_positives.extend(payload.get("positives") or [])
             agg_issues.extend(payload.get("issues") or [])
 
-        # root: самый частый верхний каталог
-        root_value = None
-        if roots:
-            from collections import Counter
-            root_value = Counter(roots).most_common(1)[0][0]
+            # root: самый частый верхний каталог
+            root_value = None
+            if roots:
+                from collections import Counter
+                root_value = Counter(roots).most_common(1)[0][0]
 
-        # дедупликации
-        agg_highlights = dedup_seq(agg_highlights, key=lambda s: s)[:10]
-        agg_positives = dedup_seq(
-            agg_positives,
-            key=lambda x: (x.get("file"), x.get("line"), x.get("message"))
-        )
-        agg_issues = dedup_seq(
-            agg_issues,
-            key=lambda x: (x.get("id"), x.get("file"), x.get("line"), x.get("message"))
-        )
+            # дедупликации
+            agg_highlights = dedup_seq(agg_highlights, key=lambda s: s)[:10]
+            agg_positives = dedup_seq(
+                agg_positives,
+                key=lambda x: (x.get("file"), x.get("line"), x.get("message"))
+            )
+            agg_issues = dedup_seq(
+                agg_issues,
+                key=lambda x: (x.get("id"), x.get("file"), x.get("line"), x.get("message"))
+            )
 
-        # подсчёт major/minor (critical считаем как major)
-        major = minor = 0
-        for it in agg_issues:
-            sev = (it.get("severity") or "").lower()
-            if sev in ("critical", "major"):
-                major += 1
-            else:
-                minor += 1
+            # подсчёт major/minor (critical считаем как major)
+            major = minor = 0
+            for it in agg_issues:
+                sev = (it.get("severity") or "").lower()
+                if sev in ("critical", "major"):
+                    major += 1
+                else:
+                    minor += 1
 
-        overall_text = " | ".join(dedup_seq(
-            [p for p in (s.strip() for s in overall_parts) if p],
-            key=lambda s: s
-        ))
+            overall_text = " | ".join(dedup_seq(
+                [p for p in (s.strip() for s in overall_parts) if p],
+                key=lambda s: s
+            ))
 
-        # финальный единственный объект
-        final_payload = {
-            "agent": "autoreview",
-            "role": "reviewer",
-            "name": "AutoReview",
-            "archive": archive_name,
-            "root": root_value,
-            "summary": {
-                "issue_counts": {"major": major, "minor": minor},
-                "highlights": agg_highlights
-            },
-            "overall": overall_text,
-            "positives": agg_positives,
-            "issues": agg_issues
-        }
+            # финальный единственный объект
+            final_payload = {
+                "agent": "autoreview",
+                "role": "reviewer",
+                "name": "AutoReview",
+                "archive": archive_name,
+                "root": root_value,
+                "summary": {
+                    "issue_counts": {"major": major, "minor": minor},
+                    "highlights": agg_highlights
+                },
+                "overall": overall_text,
+                "positives": agg_positives,
+                "issues": agg_issues
+            }
 
-        # запись ОДНОГО dict
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(final_payload, f, ensure_ascii=False, indent=2)
+            out_path = _path_multiagent_json(username)
+            with out_path.open("w", encoding="utf-8") as f:
+                json.dump(final_payload, f, ensure_ascii=False, indent=2)
 
-        return {"success": True, "files": len(files), "output": str(out_path)}
-    finally:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        # чистим workspace, сохраняя .log
-        try:
-            workspace_dir = DATA_DIR / "workspace"
-            if workspace_dir.exists():
+            # чистим только workspace текущей загрузки (сохраняем .log)
+            try:
+                workspace_dir = _path_workspace_dir(username)
                 for p in workspace_dir.iterdir():
                     try:
                         if p.is_dir():
@@ -947,8 +982,12 @@ def llm_analyze_repo_per_file(
                             p.unlink(missing_ok=True)
                     except Exception:
                         pass
-        except Exception:
-            pass
+            except Exception:
+                pass
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    return {"success": True, "files": len(files), "output": str(out_path)}
 
 
 def llm_answer_to_html_simulator(
@@ -957,6 +996,7 @@ def llm_answer_to_html_simulator(
     project_name: Optional[str] = None,
     uploaded_at: Optional[str] = None
 ) -> str:
+
 
     print("[PIPE] llm_answer_to_html_simulator: using pipeline renderer")
     project_path = _find_latest_project(username=username)
@@ -983,29 +1023,26 @@ def llm_answer_to_html_simulator(
 
         project_root = pcommon.detect_project_root(base, (answer or {}).get("root", ""))
 
-        # 1) LLM-issues → добавляем сниппеты
-        llm_raw = json.loads((MULTIAGENT_JSON).read_text(encoding="utf-8")) if MULTIAGENT_JSON.exists() else {}
-        review_llm = bs.process(llm_raw, project_root, context=SNIPPET_CONTEXT)
 
-        # 2) Linters → читаем, нормализуем и тоже добавляем сниппеты
-        linters_raw = json.loads((LINTERS_JSON).read_text(encoding="utf-8")) if LINTERS_JSON.exists() else []
+        ma_path = _path_multiagent_json(username)
+        linters_path = _path_linters_json(username)
+
+        llm_raw = json.loads(ma_path.read_text(encoding="utf-8")) if ma_path.exists() else {}
+        linters_raw = json.loads(linters_path.read_text(encoding="utf-8")) if linters_path.exists() else []
+
+        project_root = pcommon.detect_project_root(base, (llm_raw or {}).get("root", ""))
+
+        review_llm = bs.process(llm_raw, project_root, context=SNIPPET_CONTEXT)
         linters_norm = _normalize_linter_issues(linters_raw)
-        # прогоняем через тот же билд-сниппетов (обёртываем во временный review-словарь)
         linters_review_like = {"issues": linters_norm}
         linters_with_snips = bs.process(linters_review_like, project_root, context=SNIPPET_CONTEXT)
-
-        # 3) Собираем per_file отдельно и склеиваем (LLM + Linters)
         per_file_llm     = rrh.gather_issues_by_file(review_llm)
         per_file_linters = rrh.gather_issues_by_file(linters_with_snips)
         per_file_all     = _merge_per_file(per_file_llm, per_file_linters)
 
-        # 4) Строим дерево по объединённым данным
         tree_json = rrh.build_tree_json(per_file_all, project_root)
-
-        # 5) Текстовые блоки из LLM
         overall    = rrh.get_overall(review_llm)
         highlights = rrh.get_highlights(review_llm)
-
         # 6) Статика
         css_path = ASSETS_DIR / "assets" / "upload_theme.css" if (ASSETS_DIR / "assets").exists() else ASSETS_DIR / "upload_theme.css"
         # на случай, если assets у тебя лежат в public/assets — пробуем оба варианта
@@ -1026,9 +1063,9 @@ def llm_answer_to_html_simulator(
         suffix = " ".join(filter(None, [pname, f"({when})" if when else ""]))
         title = f"AutoReview — {suffix}" if suffix else "AutoReview — отчёт по проекту"
 
-        # 8) Рендер
         html_text = rrh.page_html(tree_json, per_file_all, styles, script, title,
                                   overall=overall, highlights=highlights)
+
 
         # 9) Сохраняем
         reports_d = REPORTS_DIR / username

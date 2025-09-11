@@ -1,4 +1,5 @@
 cd frontend-project
+
 pip install -r requirements.txt
 apt-get install wget
 apt install npm
@@ -24,3 +25,4 @@ pip install flake8
 # (опц.) checkstyle JAR рядом с проектом — если хочешь проверки Java
 # curl -L -o checkstyle-all.jar \
 #   https://github.com/checkstyle/checkstyle/releases/download/checkstyle-10.17.0/checkstyle-10.17.0-all.jar
+
