@@ -108,6 +108,20 @@ users = {"t": {"password": "t", "name": "Test User"}}
 
 htmls_path = "./public/"
 
+def _find_latest_zip(username: Optional[str] = None) -> Optional[Path]:
+    base = PROJECT_ROOT / UPLOAD_FOLDER
+    if username:
+        base = base / username
+    patterns = [str(base / "**" / "project.zip"), str(base / "**" / "*.zip")]
+    candidates = []
+    for pat in patterns:
+        candidates.extend(glob.glob(pat, recursive=True))
+    cand_paths = [Path(p) for p in set(candidates) if os.path.isfile(p)]
+    if not cand_paths:
+        return None
+    cand_paths.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return cand_paths[0]
+
 def _latest_upload_root(username: Optional[str]) -> Path:
     """
     Возвращает uploads/<username>/<timestamp> для самого свежего .zip/.pdf.
